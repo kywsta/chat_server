@@ -1,31 +1,31 @@
 /app
 ├── config/
-│   ├── db.conf.js
-│   ├── app.conf.js
-│   ├── app.keys.js
-│   ├── db.keys.js
-│   ├── init.js
+│   ├── db.config.ts
+│   ├── app.config.ts
+│   ├── app.keys.ts
+│   ├── db.keys.ts
+│   ├── init.ts
 ├── database/
-│   ├── Redis.database.js
-│   ├── Mongo.database.js
-│   ├── init.js
+│   ├── redis.database.ts
+│   ├── mongo.database.ts
+│   ├── init.ts
 ├── routes/
-│   ├── App.routes.js
-│   ├── Auth.routes.js
-│   ├── Dashboard.routes.js
+│   ├── app.routes.ts
+│   ├── auth.routes.ts
+│   ├── dashboard.routes.ts
 ├── utils/
-│   ├── Logger.util.js
+│   ├── logger.util.ts
 ├── middleware/
-│   ├── App.middleware.js
-│   ├── ErrorHandler.middleware.js
-│   ├── init.js
+│   ├── app.middleware.ts
+│   ├── error-handler.middleware.ts
+│   ├── init.ts
 ├── models/
-│   ├── User.model.js
+│   ├── user.model.ts
 ├── controllers/
-│   ├── App.controller.js
-│   ├── User.controller.js
+│   ├── app.controller.ts
+│   ├── user.controller.ts
 ├── helpers/
-│   ├── App.helper.js
+│   ├── app.helper.ts
 ├── views/
 │   ├── layouts/
 │   ├── partials/
@@ -45,8 +45,8 @@
 ├── sitemap.xml
 /samples
 ├── .env.sample
-├── db.conf.sample
-├── app.conf.sample
+├── db.config.sample
+├── app.config.sample
 ├── app.keys.sample
 /src
 ├── javascript/

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { appConfig } from '../config/app.config';
 import { User, UserResponse } from '../types';
+import { appConfig } from '../config/app.config';
 
 // In-memory user storage (replace with database in production)
 let users: User[] = [];
