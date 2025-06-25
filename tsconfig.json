@@ -25,6 +25,15 @@
     "allowUnreachableCode": false,
     "exactOptionalPropertyTypes": true
   },
+  "ts-node": {
+    "esm": false,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": false,
+    "files": true,
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
   "include": [
     "src/**/*"
   ],
