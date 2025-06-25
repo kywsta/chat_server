@@ -1,6 +1,6 @@
 # Express Chat Backend Server
 
-A simple chat backend server built with Express.js featuring JWT authentication.
+A simple chat backend server built with Express.js and TypeScript featuring JWT authentication.
 
 ## Features
 
@@ -10,6 +10,23 @@ A simple chat backend server built with Express.js featuring JWT authentication.
 - Protected routes
 - CORS enabled
 - Health check endpoint
+- Full TypeScript support with type safety
+
+## TypeScript
+
+This project is written in TypeScript for better type safety and developer experience. The source code is located in the `src/` directory and gets compiled to JavaScript in the `dist/` directory.
+
+### Development
+- TypeScript source files are in `src/`
+- Use `npm run dev` for development with automatic TypeScript compilation and hot reload
+- Use `npm run build` to compile TypeScript to JavaScript
+
+### Type Definitions
+The project includes comprehensive type definitions for:
+- User data structures
+- Request/Response objects
+- JWT payload
+- Authentication middleware
 
 ## Setup
 
@@ -26,10 +43,13 @@ JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
 3. Start the server:
 ```bash
-# Development mode (with nodemon)
+# Build TypeScript (for production)
+npm run build
+
+# Development mode (with ts-node and nodemon)
 npm run dev
 
-# Production mode
+# Production mode (run compiled JavaScript)
 npm start
 ```
 
