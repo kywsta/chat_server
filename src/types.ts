@@ -8,12 +8,13 @@ export interface User {
 export interface UserResponse {
   id: number;
   username: string;
-  createdAt: Date;
+  email?: string;
 }
 
 export interface RegisterRequest {
   username: string;
   password: string;
+  email?: string;
 }
 
 export interface LoginRequest {
@@ -22,9 +23,9 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  message: string;
-  token: string;
   user: UserResponse;
+  token: string;
+  message?: string;
 }
 
 export interface JWTPayload {
