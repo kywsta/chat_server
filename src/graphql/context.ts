@@ -1,8 +1,56 @@
 import { Request } from 'express';
 import { GraphQLContext, JWTPayload } from '../types';
 import { JWTUtil } from '../utils/jwt.util';
+import { LoggerUtil } from '../utils/logger.util';
+import { extractGraphQLToken, validateGraphQLToken } from './middleware/auth.middleware';
 
+/**
+ * Creates GraphQL context with enhanced authentication and error handling
+ * Integrates with existing JWT authentication system
+ */
 export async function createGraphQLContext({ req }: { req: Request }): Promise<GraphQLContext> {
+  try {
+    // Extract token from Authorization header
+    const token = extractGraphQLToken(req.headers.authorization);
+    
+    if (!token) {
+      LoggerUtil.debug('No authentication token provided in GraphQL request');
+      return { 
+        isAuthenticated: false
+      };
+    }
+
+    // Validate token using enhanced validation
+    const decoded = await validateGraphQLToken(token);
+    
+    LoggerUtil.debug('GraphQL context created with authenticated user', { 
+      userId: decoded.userId,
+      username: decoded.username 
+    });
+    
+    return {
+      user: decoded,
+      isAuthenticated: true,
+    };
+  } catch (error) {
+    // Log authentication failures for security monitoring
+    LoggerUtil.warn('GraphQL authentication failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress
+    });
+    
+    return { 
+      isAuthenticated: false
+    };
+  }
+}
+
+/**
+ * Legacy context creation function for backward compatibility
+ * Uses the original simple JWT validation
+ */
+export async function createSimpleGraphQLContext({ req }: { req: Request }): Promise<GraphQLContext> {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {

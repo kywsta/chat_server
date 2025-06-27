@@ -1,10 +1,13 @@
-import { Ctx, Query, Resolver } from 'type-graphql';
+import 'reflect-metadata';
+import { Ctx, Query, Resolver, UseMiddleware } from 'type-graphql';
 import { GraphQLContext } from '../../types';
+import { GraphQLAuthGuard, GraphQLOptionalAuthGuard } from '../middleware/auth.middleware';
 import { User } from '../types/User';
 
 @Resolver()
 export class UserResolver {
   @Query(() => User, { nullable: true })
+  @UseMiddleware(GraphQLAuthGuard)
   async me(@Ctx() context: GraphQLContext): Promise<User | null> {
     if (!context.isAuthenticated || !context.user) {
       return null;
@@ -20,7 +23,11 @@ export class UserResolver {
   }
 
   @Query(() => String)
-  async hello(): Promise<string> {
+  @UseMiddleware(GraphQLOptionalAuthGuard)
+  async hello(@Ctx() context: GraphQLContext): Promise<string> {
+    if (context.isAuthenticated && context.user) {
+      return `Hello ${context.user.username} from GraphQL!`;
+    }
     return 'Hello from GraphQL!';
   }
 } 
