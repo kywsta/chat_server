@@ -1,7 +1,9 @@
 import cors from 'cors';
 import express from 'express';
+import 'reflect-metadata';
 import { appConfig } from './config/app.config';
 import { DatabaseManager } from './database/database.manager';
+import { createGraphQLServer } from './graphql/server';
 import { requestLogger } from './middleware/app.middleware';
 import { errorHandler } from './middleware/error-handler.middleware';
 import { setupRoutes } from './routes';
@@ -79,7 +81,11 @@ async function initializeApp(): Promise<void> {
     // Seed database if needed
     await databaseManager.seedDatabase();
     
-    // Setup routes AFTER services are initialized
+    // Setup GraphQL endpoint
+    const graphqlMiddleware = await createGraphQLServer();
+    app.use('/graphql', cors(), graphqlMiddleware);
+    
+    // Setup REST routes AFTER services are initialized
     setupRoutes(app);
     
     // Error handling middleware (must be last)

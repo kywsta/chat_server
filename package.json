@@ -13,12 +13,18 @@
   "license": "ISC",
   "description": "Simple chat backend server with JWT authentication",
   "dependencies": {
+    "@apollo/server": "^4.12.2",
+    "@as-integrations/express5": "^1.1.0",
     "bcryptjs": "^2.4.3",
+    "class-validator": "^0.14.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
+    "express": "^5.1.0",
     "express-validator": "^7.0.1",
-    "jsonwebtoken": "^9.0.2"
+    "graphql": "^16.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "reflect-metadata": "^0.2.2",
+    "type-graphql": "^2.0.0-rc.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
