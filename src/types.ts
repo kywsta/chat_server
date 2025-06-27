@@ -42,4 +42,35 @@ export interface AuthenticatedRequest extends Request {
 export interface GraphQLContext {
   user?: JWTPayload;
   isAuthenticated: boolean;
+}
+
+export interface Chat {
+  id: string;
+  name: string;
+  creatorId: string;
+  memberIds: string[];
+  isGroup: boolean;
+  lastMessageId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Message {
+  id: string;
+  chatId: string;
+  userId: string;
+  content: string;
+  type: 'text' | 'image' | 'file' | 'system';
+  replyToId?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface ChatMember {
+  id: string;
+  chatId: string;
+  userId: string;
+  role: 'admin' | 'member';
+  joinedAt: Date;
+  isActive: boolean;
 } 

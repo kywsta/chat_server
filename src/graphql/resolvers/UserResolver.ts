@@ -15,6 +15,7 @@ export class UserResolver {
       id: context.user.userId,
       username: context.user.username,
       createdAt: new Date(),
+      isActive: true,
     };
   }
 

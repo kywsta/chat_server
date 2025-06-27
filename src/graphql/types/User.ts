@@ -13,4 +13,7 @@ export class User {
 
   @Field()
   createdAt!: Date;
+
+  @Field()
+  isActive!: boolean;
 } 
