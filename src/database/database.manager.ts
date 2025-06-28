@@ -1,12 +1,14 @@
 import { LoggerUtil } from '../utils/logger.util';
 import { DatabaseFactory, DatabaseRepositories, DatabaseType } from './database.factory';
 import { DatabaseConnection, UserRepository } from './interfaces/database.interface';
+import { DatabaseSeeder } from './seed';
 
 export class DatabaseManager {
   private static instance: DatabaseManager;
   private connection: DatabaseConnection | null = null;
   private repositories: DatabaseRepositories | null = null;
   private isInitialized = false;
+  private seeder: DatabaseSeeder | null = null;
 
   private constructor() {}
 
@@ -31,6 +33,7 @@ export class DatabaseManager {
       await connection.connect();
       this.connection = connection;
       this.repositories = repositories;
+      this.seeder = new DatabaseSeeder(this);
       this.isInitialized = true;
 
       LoggerUtil.info('Database manager initialized successfully');
@@ -48,6 +51,7 @@ export class DatabaseManager {
       }
       
       this.repositories = null;
+      this.seeder = null;
       this.isInitialized = false;
       
       LoggerUtil.info('Database manager shutdown successfully');
@@ -55,6 +59,11 @@ export class DatabaseManager {
       LoggerUtil.error('Error during database manager shutdown', error);
       throw error;
     }
+  }
+
+  getDatabase(): DatabaseConnection {
+    this.ensureInitialized();
+    return this.connection!;
   }
 
   getUserRepository(): UserRepository {
@@ -98,8 +107,10 @@ export class DatabaseManager {
     try {
       LoggerUtil.info('Starting database seed...');
       
-      if (this.connection && typeof (this.connection as any).seed === 'function') {
-        await (this.connection as any).seed();
+      if (this.seeder) {
+        await this.seeder.seedDatabase();
+      } else {
+        LoggerUtil.warn('Database seeder not available');
       }
       
       LoggerUtil.info('Database seed completed successfully');

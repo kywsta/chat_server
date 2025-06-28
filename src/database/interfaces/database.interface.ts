@@ -43,6 +43,37 @@ export interface UserRepository extends Repository<UserEntity> {
   getActiveUsers(options?: FindOptions): Promise<UserEntity[]>;
 }
 
+export interface ChatRepository extends Repository<ChatEntity, string> {
+  findByCreatorId(creatorId: string): Promise<ChatEntity[]>;
+  findByMemberId(memberId: string): Promise<ChatEntity[]>;
+  addMember(chatId: string, userId: string): Promise<void>;
+  removeMember(chatId: string, userId: string): Promise<void>;
+  getMembers(chatId: string): Promise<string[]>;
+  updateLastMessage(chatId: string, messageId: string): Promise<ChatEntity | null>;
+  findGroupChats(userId: string): Promise<ChatEntity[]>;
+  findDirectChats(userId: string): Promise<ChatEntity[]>;
+}
+
+export interface MessageRepository extends Repository<MessageEntity, string> {
+  findByChatId(chatId: string, options?: FindOptions): Promise<MessageEntity[]>;
+  findByUserId(userId: string, options?: FindOptions): Promise<MessageEntity[]>;
+  findReplies(messageId: string): Promise<MessageEntity[]>;
+  updateContent(messageId: string, content: string): Promise<MessageEntity | null>;
+  getMessageCount(chatId: string): Promise<number>;
+  getLatestMessage(chatId: string): Promise<MessageEntity | null>;
+  findByType(type: MessageType, options?: FindOptions): Promise<MessageEntity[]>;
+}
+
+export interface ChatMemberRepository extends Repository<ChatMemberEntity, string> {
+  findByChatId(chatId: string): Promise<ChatMemberEntity[]>;
+  findByUserId(userId: string): Promise<ChatMemberEntity[]>;
+  findByChatAndUser(chatId: string, userId: string): Promise<ChatMemberEntity | null>;
+  updateRole(chatId: string, userId: string, role: ChatMemberRole): Promise<ChatMemberEntity | null>;
+  deactivateMember(chatId: string, userId: string): Promise<ChatMemberEntity | null>;
+  getActiveMembers(chatId: string): Promise<ChatMemberEntity[]>;
+  getAdmins(chatId: string): Promise<ChatMemberEntity[]>;
+}
+
 export interface UserEntity {
   id: number;
   username: string;
@@ -51,4 +82,46 @@ export interface UserEntity {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ChatEntity {
+  id: string;
+  name: string;
+  creatorId: string;
+  isGroup: boolean;
+  lastMessageId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MessageEntity {
+  id: string;
+  chatId: string;
+  userId: string;
+  content: string;
+  type: MessageType;
+  replyToId?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface ChatMemberEntity {
+  id: string;
+  chatId: string;
+  userId: string;
+  role: ChatMemberRole;
+  joinedAt: Date;
+  isActive: boolean;
+}
+
+export enum MessageType {
+  TEXT = 'text',
+  IMAGE = 'image',
+  FILE = 'file',
+  SYSTEM = 'system',
+}
+
+export enum ChatMemberRole {
+  ADMIN = 'admin',
+  MEMBER = 'member',
 } 

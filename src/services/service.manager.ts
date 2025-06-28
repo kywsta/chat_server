@@ -1,10 +1,17 @@
 import { DatabaseManager } from '../database/database.manager';
+import { MemoryChatMemberRepository } from '../database/repositories/chat-member.repository';
+import { MemoryChatRepository } from '../database/repositories/chat.repository';
+import { MemoryMessageRepository } from '../database/repositories/message.repository';
 import { LoggerUtil } from '../utils/logger.util';
+import { ChatService } from './chat.service';
+import { MessageService } from './message.service';
 import { UserService } from './user.service';
 
 export class ServiceManager {
   private static instance: ServiceManager;
   private userService: UserService | null = null;
+  private chatService: ChatService | null = null;
+  private messageService: MessageService | null = null;
   private isInitialized = false;
 
   private constructor() {}
@@ -27,8 +34,15 @@ export class ServiceManager {
       
       const databaseManager = DatabaseManager.getInstance();
       
+      // Initialize repositories
+      const chatRepository = new MemoryChatRepository(databaseManager);
+      const chatMemberRepository = new MemoryChatMemberRepository(databaseManager);
+      const messageRepository = new MemoryMessageRepository(databaseManager);
+      
       // Initialize services with their respective repositories
       this.userService = new UserService(databaseManager.getUserRepository());
+      this.chatService = new ChatService(chatRepository, chatMemberRepository);
+      this.messageService = new MessageService(messageRepository);
       
       this.isInitialized = true;
       LoggerUtil.info('Service manager initialized successfully');
@@ -41,6 +55,16 @@ export class ServiceManager {
   getUserService(): UserService {
     this.ensureInitialized();
     return this.userService!;
+  }
+
+  getChatService(): ChatService {
+    this.ensureInitialized();
+    return this.chatService!;
+  }
+
+  getMessageService(): MessageService {
+    this.ensureInitialized();
+    return this.messageService!;
   }
 
   private ensureInitialized(): void {
