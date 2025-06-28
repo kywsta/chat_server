@@ -1,13 +1,19 @@
 import { MessageEntity, MessageType } from '../database/interfaces/database.interface';
+import { MemoryChatRepository } from '../database/repositories/chat.repository';
 import { MemoryMessageRepository } from '../database/repositories/message.repository';
 import { Message } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
 
 export class MessageService {
   private messageRepository: MemoryMessageRepository;
+  private chatRepository: MemoryChatRepository;
 
-  constructor(messageRepository: MemoryMessageRepository) {
+  constructor(
+    messageRepository: MemoryMessageRepository,
+    chatRepository: MemoryChatRepository
+  ) {
     this.messageRepository = messageRepository;
+    this.chatRepository = chatRepository;
   }
 
   async sendMessage(
@@ -34,6 +40,15 @@ export class MessageService {
 
       const message = await this.messageRepository.create(messageData);
 
+      // Business logic: Update chat's last message
+      try {
+        await this.chatRepository.updateLastMessage(chatId, message.id);
+        LoggerUtil.debug('Updated chat last message', { chatId, messageId: message.id });
+      } catch (error) {
+        LoggerUtil.error('Failed to update chat last message', error);
+        // Don't throw here - message creation should still succeed
+      }
+
       LoggerUtil.info('Message sent successfully', { 
         messageId: message.id, 
         chatId: message.chatId, 
@@ -50,10 +65,11 @@ export class MessageService {
   async getChatMessages(
     chatId: string, 
     limit: number = 50, 
-    offset: number = 0
+    offset: number = 0,
+    userId?: string
   ): Promise<Message[]> {
     try {
-      LoggerUtil.debug('Getting chat messages', { chatId, limit, offset });
+      LoggerUtil.debug('Getting chat messages', { chatId, limit, offset, userId });
 
       const messages = await this.messageRepository.findByChatId(chatId, {
         limit,

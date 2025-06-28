@@ -5,20 +5,14 @@ import { MemoryDatabase, MemoryStringRepository } from '../memory.database';
 
 export class MemoryMessageRepository implements MessageRepository {
   private repository: MemoryStringRepository<MessageEntity>;
-  private databaseManager: DatabaseManager;
 
   constructor(databaseManager: DatabaseManager) {
-    this.databaseManager = databaseManager;
     const database = databaseManager.getDatabase() as MemoryDatabase;
     this.repository = new MemoryStringRepository<MessageEntity>(database, 'messages');
   }
 
   async create(data: Omit<MessageEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<MessageEntity> {
     const message = await this.repository.create(data);
-    
-    // Business logic: Update chat's last message
-    await this.updateChatLastMessage(message.chatId, message.id);
-    
     LoggerUtil.debug('Message created', { messageId: message.id, chatId: message.chatId, userId: message.userId });
     return message;
   }
@@ -43,7 +37,7 @@ export class MemoryMessageRepository implements MessageRepository {
     return this.repository.count(filter);
   }
 
-  // Business logic methods - implemented in repository layer
+  // Message-specific query methods
   async findByChatId(chatId: string, options?: FindOptions): Promise<MessageEntity[]> {
     const mergedOptions = {
       ...options,
@@ -73,7 +67,7 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   async updateContent(messageId: string, content: string): Promise<MessageEntity | null> {
-    return this.update(messageId, { content });
+    return this.update(messageId, { content, updatedAt: new Date() });
   }
 
   async getMessageCount(chatId: string): Promise<number> {
@@ -93,24 +87,5 @@ export class MemoryMessageRepository implements MessageRepository {
       orderDirection: options?.orderDirection || 'DESC'
     };
     return this.repository.findAll(mergedOptions);
-  }
-
-  // Private helper method for business logic
-  private async updateChatLastMessage(chatId: string, messageId: string): Promise<void> {
-    try {
-      // Get the chat repository to update the lastMessageId
-      const database = this.repository['database'] as MemoryDatabase;
-      const chatRepository = new MemoryStringRepository<any>(database, 'chats');
-      
-      await chatRepository.update(chatId, { 
-        lastMessageId: messageId,
-        updatedAt: new Date()
-      });
-      
-      LoggerUtil.debug('Updated chat last message', { chatId, messageId });
-    } catch (error) {
-      LoggerUtil.error('Failed to update chat last message', error);
-      // Don't throw here - message creation should still succeed
-    }
   }
 } 

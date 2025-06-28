@@ -63,12 +63,45 @@ export class ChatService {
     try {
       LoggerUtil.debug('Getting user chats', { userId });
 
-      const chats = await this.chatRepository.findByMemberId(userId);
+      // Business logic: Get user's chat memberships, then fetch the chats
+      const memberships = await this.chatMemberRepository.findByUserId(userId);
+      const activeMemberships = memberships.filter(membership => membership.isActive);
+      
+      const chatIds = activeMemberships.map(membership => membership.chatId);
+      
+      // Fetch all chats that the user is a member of
+      const chats: ChatEntity[] = [];
+      for (const chatId of chatIds) {
+        const chat = await this.chatRepository.findById(chatId);
+        if (chat) {
+          chats.push(chat);
+        }
+      }
       
       LoggerUtil.debug('Found user chats', { userId, count: chats.length });
       return chats.map(chat => this.mapChatEntityToChat(chat));
     } catch (error) {
       LoggerUtil.error('Failed to get user chats', error);
+      throw error;
+    }
+  }
+
+  async getUserGroupChats(userId: string): Promise<Chat[]> {
+    try {
+      const userChats = await this.getUserChats(userId);
+      return userChats.filter(chat => chat.isGroup);
+    } catch (error) {
+      LoggerUtil.error('Failed to get user group chats', error);
+      throw error;
+    }
+  }
+
+  async getUserDirectChats(userId: string): Promise<Chat[]> {
+    try {
+      const userChats = await this.getUserChats(userId);
+      return userChats.filter(chat => !chat.isGroup);
+    } catch (error) {
+      LoggerUtil.error('Failed to get user direct chats', error);
       throw error;
     }
   }
@@ -87,12 +120,26 @@ export class ChatService {
     try {
       LoggerUtil.debug('Getting chat members', { chatId });
 
-      const members = await this.chatMemberRepository.getActiveMembers(chatId);
+      const members = await this.chatMemberRepository.findActiveMembers(chatId);
       
       LoggerUtil.debug('Found chat members', { chatId, count: members.length });
       return members.map(member => this.mapChatMemberEntityToChatMember(member));
     } catch (error) {
       LoggerUtil.error('Failed to get chat members', error);
+      throw error;
+    }
+  }
+
+  async getChatAdmins(chatId: string): Promise<ChatMember[]> {
+    try {
+      LoggerUtil.debug('Getting chat admins', { chatId });
+
+      const admins = await this.chatMemberRepository.findMembersByRole(chatId, ChatMemberRole.ADMIN);
+      
+      LoggerUtil.debug('Found chat admins', { chatId, count: admins.length });
+      return admins.map(member => this.mapChatMemberEntityToChatMember(member));
+    } catch (error) {
+      LoggerUtil.error('Failed to get chat admins', error);
       throw error;
     }
   }
@@ -136,9 +183,16 @@ export class ChatService {
     try {
       LoggerUtil.debug('Removing member from chat', { chatId, userId });
 
-      const member = await this.chatMemberRepository.deactivateMember(chatId, userId);
+      // Business logic: Find member and deactivate
+      const member = await this.chatMemberRepository.findByChatAndUser(chatId, userId);
+      if (!member) {
+        LoggerUtil.warn('Cannot remove - member not found', { chatId, userId });
+        return false;
+      }
+
+      const updatedMember = await this.chatMemberRepository.update(member.id, { isActive: false });
       
-      if (member) {
+      if (updatedMember) {
         LoggerUtil.info('Member removed from chat successfully', { chatId, userId, memberId: member.id });
         return true;
       }
@@ -154,7 +208,14 @@ export class ChatService {
     try {
       LoggerUtil.debug('Updating member role', { chatId, userId, role });
 
-      const updatedMember = await this.chatMemberRepository.updateRole(chatId, userId, role);
+      // Business logic: Find member and update role
+      const member = await this.chatMemberRepository.findByChatAndUser(chatId, userId);
+      if (!member) {
+        LoggerUtil.warn('Cannot update role - member not found', { chatId, userId, role });
+        return null;
+      }
+
+      const updatedMember = await this.chatMemberRepository.update(member.id, { role });
       
       if (updatedMember) {
         LoggerUtil.info('Member role updated successfully', { chatId, userId, role, memberId: updatedMember.id });
@@ -175,6 +236,13 @@ export class ChatService {
     } catch (error) {
       LoggerUtil.error('Failed to check if user is member of chat', error);
       return false;
+    }
+  }
+
+  async validateUserChatAccess(userId: string, chatId: string): Promise<void> {
+    const hasAccess = await this.isUserMemberOfChat(chatId, userId);
+    if (!hasAccess) {
+      throw new Error('User does not have access to this chat');
     }
   }
 

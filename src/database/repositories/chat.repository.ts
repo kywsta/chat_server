@@ -37,58 +37,35 @@ export class MemoryChatRepository implements ChatRepository {
     return this.repository.count(filter);
   }
 
-  // Business logic methods - implemented in repository layer
+  // Chat-specific query methods
   async findByCreatorId(creatorId: string): Promise<ChatEntity[]> {
-    return this.repository.findAll({ filter: { creatorId } });
-  }
-
-  async findByMemberId(memberId: string): Promise<ChatEntity[]> {
-    // This requires cross-collection lookup, which is business logic
-    // We need to find all ChatMemberEntity records for this user, then get their chats
-    const database = this.repository['database'] as MemoryDatabase; // Access the database through the repository
-    const chatMemberRepository = new MemoryStringRepository(database, 'chatMembers');
-    
-    const memberEntries = await chatMemberRepository.findAll({ 
-      filter: { userId: memberId, isActive: true } 
+    return this.repository.findAll({ 
+      filter: { creatorId },
+      orderBy: 'createdAt',
+      orderDirection: 'DESC'
     });
-    
-    const chatIds = memberEntries.map((member: any) => member.chatId);
-    
-    // Get all chats and filter by the chat IDs
-    const allChats = await this.repository.findAll();
-    return allChats.filter(chat => chatIds.includes(chat.id));
-  }
-
-  async addMember(chatId: string, userId: string): Promise<void> {
-    // This is business logic that should be handled by ChatMemberRepository
-    // This method should not exist in ChatRepository - it's a cross-concern
-    LoggerUtil.warn('addMember called on ChatRepository - this should be handled by ChatMemberRepository');
-    throw new Error('addMember should be handled by ChatMemberRepository, not ChatRepository');
-  }
-
-  async removeMember(chatId: string, userId: string): Promise<void> {
-    // This is business logic that should be handled by ChatMemberRepository
-    LoggerUtil.warn('removeMember called on ChatRepository - this should be handled by ChatMemberRepository');
-    throw new Error('removeMember should be handled by ChatMemberRepository, not ChatRepository');
-  }
-
-  async getMembers(chatId: string): Promise<string[]> {
-    // This is business logic that should be handled by ChatMemberRepository
-    LoggerUtil.warn('getMembers called on ChatRepository - this should be handled by ChatMemberRepository');
-    throw new Error('getMembers should be handled by ChatMemberRepository, not ChatRepository');
   }
 
   async updateLastMessage(chatId: string, messageId: string): Promise<ChatEntity | null> {
-    return this.update(chatId, { lastMessageId: messageId });
+    return this.update(chatId, { 
+      lastMessageId: messageId,
+      updatedAt: new Date()
+    });
   }
 
-  async findGroupChats(userId: string): Promise<ChatEntity[]> {
-    const userChats = await this.findByMemberId(userId);
-    return userChats.filter(chat => chat.isGroup);
+  async findGroupChats(): Promise<ChatEntity[]> {
+    return this.repository.findAll({ 
+      filter: { isGroup: true },
+      orderBy: 'createdAt',
+      orderDirection: 'DESC'
+    });
   }
 
-  async findDirectChats(userId: string): Promise<ChatEntity[]> {
-    const userChats = await this.findByMemberId(userId);
-    return userChats.filter(chat => !chat.isGroup);
+  async findDirectChats(): Promise<ChatEntity[]> {
+    return this.repository.findAll({ 
+      filter: { isGroup: false },
+      orderBy: 'createdAt',
+      orderDirection: 'DESC'
+    });
   }
 } 

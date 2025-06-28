@@ -14,8 +14,8 @@ class ChatMemberStringRepository {
     return this.database.getStringCollection<ChatMemberEntity>(this.collectionName);
   }
 
-  generateId(): string {
-    return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+  private generateId(): string {
+    return Math.random().toString(36).substr(2, 9);
   }
 
   async create(data: Omit<ChatMemberEntity, 'id'>): Promise<ChatMemberEntity> {
@@ -38,12 +38,12 @@ class ChatMemberStringRepository {
     return collection.get(id) || null;
   }
 
-  async findAll(options: FindOptions = {}): Promise<ChatMemberEntity[]> {
+  async findAll(options?: FindOptions): Promise<ChatMemberEntity[]> {
     const collection = this.getCollection();
     let entities = Array.from(collection.values());
 
     // Apply filter
-    if (options.filter) {
+    if (options?.filter) {
       entities = entities.filter(entity => {
         return Object.entries(options.filter!).every(([key, value]) => {
           return (entity as any)[key] === value;
@@ -52,7 +52,7 @@ class ChatMemberStringRepository {
     }
 
     // Apply sorting
-    if (options.orderBy) {
+    if (options?.orderBy) {
       entities.sort((a, b) => {
         const aValue = (a as any)[options.orderBy!];
         const bValue = (b as any)[options.orderBy!];
@@ -64,10 +64,13 @@ class ChatMemberStringRepository {
     }
 
     // Apply pagination
-    const start = options.offset || 0;
-    const end = options.limit ? start + options.limit : entities.length;
-    
-    return entities.slice(start, end);
+    if (options?.offset || options?.limit) {
+      const start = options.offset || 0;
+      const end = options.limit ? start + options.limit : undefined;
+      entities = entities.slice(start, end);
+    }
+
+    return entities;
   }
 
   async update(id: string, data: Partial<ChatMemberEntity>): Promise<ChatMemberEntity | null> {
@@ -100,7 +103,7 @@ class ChatMemberStringRepository {
   }
 
   async count(filter?: Partial<ChatMemberEntity>): Promise<number> {
-    const entities = await this.findAll(filter ? { filter } : {});
+    const entities = await this.findAll(filter ? { filter } : undefined);
     return entities.length;
   }
 }
@@ -146,13 +149,21 @@ export class MemoryChatMemberRepository implements ChatMemberRepository {
     return this.repository.count(filter);
   }
 
-  // Business logic methods - implemented in repository layer
+  // ChatMember-specific query methods
   async findByChatId(chatId: string): Promise<ChatMemberEntity[]> {
-    return this.repository.findAll({ filter: { chatId } });
+    return this.repository.findAll({ 
+      filter: { chatId },
+      orderBy: 'joinedAt',
+      orderDirection: 'ASC'
+    });
   }
 
   async findByUserId(userId: string): Promise<ChatMemberEntity[]> {
-    return this.repository.findAll({ filter: { userId } });
+    return this.repository.findAll({ 
+      filter: { userId },
+      orderBy: 'joinedAt',
+      orderDirection: 'DESC'
+    });
   }
 
   async findByChatAndUser(chatId: string, userId: string): Promise<ChatMemberEntity | null> {
@@ -160,35 +171,7 @@ export class MemoryChatMemberRepository implements ChatMemberRepository {
     return members[0] || null;
   }
 
-  async updateRole(chatId: string, userId: string, role: ChatMemberRole): Promise<ChatMemberEntity | null> {
-    const member = await this.findByChatAndUser(chatId, userId);
-    if (!member) {
-      LoggerUtil.warn('Cannot update role - member not found', { chatId, userId, role });
-      return null;
-    }
-
-    const updated = await this.update(member.id, { role });
-    if (updated) {
-      LoggerUtil.info('Member role updated', { chatId, userId, role, memberId: member.id });
-    }
-    return updated;
-  }
-
-  async deactivateMember(chatId: string, userId: string): Promise<ChatMemberEntity | null> {
-    const member = await this.findByChatAndUser(chatId, userId);
-    if (!member) {
-      LoggerUtil.warn('Cannot deactivate - member not found', { chatId, userId });
-      return null;
-    }
-
-    const updated = await this.update(member.id, { isActive: false });
-    if (updated) {
-      LoggerUtil.info('Member deactivated', { chatId, userId, memberId: member.id });
-    }
-    return updated;
-  }
-
-  async getActiveMembers(chatId: string): Promise<ChatMemberEntity[]> {
+  async findActiveMembers(chatId: string): Promise<ChatMemberEntity[]> {
     return this.repository.findAll({ 
       filter: { chatId, isActive: true },
       orderBy: 'joinedAt',
@@ -196,9 +179,9 @@ export class MemoryChatMemberRepository implements ChatMemberRepository {
     });
   }
 
-  async getAdmins(chatId: string): Promise<ChatMemberEntity[]> {
+  async findMembersByRole(chatId: string, role: ChatMemberRole): Promise<ChatMemberEntity[]> {
     return this.repository.findAll({ 
-      filter: { chatId, role: ChatMemberRole.ADMIN, isActive: true },
+      filter: { chatId, role, isActive: true },
       orderBy: 'joinedAt',
       orderDirection: 'ASC'
     });

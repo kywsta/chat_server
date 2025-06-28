@@ -42,7 +42,7 @@ export class ServiceManager {
       // Initialize services with their respective repositories
       this.userService = new UserService(databaseManager.getUserRepository());
       this.chatService = new ChatService(chatRepository, chatMemberRepository);
-      this.messageService = new MessageService(messageRepository);
+      this.messageService = new MessageService(messageRepository, chatRepository);
       
       this.isInitialized = true;
       LoggerUtil.info('Service manager initialized successfully');

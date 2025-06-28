@@ -233,7 +233,7 @@ export class DatabaseSeeder {
 
     for (const chat of chats) {
       // Get chat members
-      const members = await chatMemberRepository.getActiveMembers(chat.id);
+      const members = await chatMemberRepository.findActiveMembers(chat.id);
 
       if (members.length === 0) continue;
 

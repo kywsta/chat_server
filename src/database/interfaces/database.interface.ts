@@ -32,6 +32,7 @@ export interface FindOptions {
   filter?: Record<string, any>;
 }
 
+// User Repository - only user-specific operations
 export interface UserRepository extends Repository<UserEntity> {
   findByUsername(username: string): Promise<UserEntity | null>;
   findByEmail(email: string): Promise<UserEntity | null>;
@@ -43,17 +44,15 @@ export interface UserRepository extends Repository<UserEntity> {
   getActiveUsers(options?: FindOptions): Promise<UserEntity[]>;
 }
 
+// Chat Repository - only chat entity operations
 export interface ChatRepository extends Repository<ChatEntity, string> {
   findByCreatorId(creatorId: string): Promise<ChatEntity[]>;
-  findByMemberId(memberId: string): Promise<ChatEntity[]>;
-  addMember(chatId: string, userId: string): Promise<void>;
-  removeMember(chatId: string, userId: string): Promise<void>;
-  getMembers(chatId: string): Promise<string[]>;
   updateLastMessage(chatId: string, messageId: string): Promise<ChatEntity | null>;
-  findGroupChats(userId: string): Promise<ChatEntity[]>;
-  findDirectChats(userId: string): Promise<ChatEntity[]>;
+  findGroupChats(): Promise<ChatEntity[]>;
+  findDirectChats(): Promise<ChatEntity[]>;
 }
 
+// Message Repository - only message entity operations
 export interface MessageRepository extends Repository<MessageEntity, string> {
   findByChatId(chatId: string, options?: FindOptions): Promise<MessageEntity[]>;
   findByUserId(userId: string, options?: FindOptions): Promise<MessageEntity[]>;
@@ -64,14 +63,13 @@ export interface MessageRepository extends Repository<MessageEntity, string> {
   findByType(type: MessageType, options?: FindOptions): Promise<MessageEntity[]>;
 }
 
+// ChatMember Repository - only chat member entity operations
 export interface ChatMemberRepository extends Repository<ChatMemberEntity, string> {
   findByChatId(chatId: string): Promise<ChatMemberEntity[]>;
   findByUserId(userId: string): Promise<ChatMemberEntity[]>;
   findByChatAndUser(chatId: string, userId: string): Promise<ChatMemberEntity | null>;
-  updateRole(chatId: string, userId: string, role: ChatMemberRole): Promise<ChatMemberEntity | null>;
-  deactivateMember(chatId: string, userId: string): Promise<ChatMemberEntity | null>;
-  getActiveMembers(chatId: string): Promise<ChatMemberEntity[]>;
-  getAdmins(chatId: string): Promise<ChatMemberEntity[]>;
+  findActiveMembers(chatId: string): Promise<ChatMemberEntity[]>;
+  findMembersByRole(chatId: string, role: ChatMemberRole): Promise<ChatMemberEntity[]>;
 }
 
 export interface UserEntity {
