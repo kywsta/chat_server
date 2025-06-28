@@ -2,13 +2,40 @@ import * as bcrypt from 'bcryptjs';
 import { appConfig } from '../config/app.config';
 import { LoggerUtil } from '../utils/logger.util';
 import { DatabaseManager } from './database.manager';
-import { ChatEntity, ChatMemberEntity, ChatMemberRole, MessageEntity, MessageType, UserEntity } from './interfaces/database.interface';
+import { ChatEntity, ChatMemberRole, MessageType, UserEntity } from './interfaces/database.interface';
+import { MemoryChatMemberRepository } from './repositories/chat-member.repository';
+import { MemoryChatRepository } from './repositories/chat.repository';
+import { MemoryMessageRepository } from './repositories/message.repository';
 
 export class DatabaseSeeder {
   private databaseManager: DatabaseManager;
+  private chatRepository?: MemoryChatRepository;
+  private chatMemberRepository?: MemoryChatMemberRepository;
+  private messageRepository?: MemoryMessageRepository;
 
   constructor(databaseManager: DatabaseManager) {
     this.databaseManager = databaseManager;
+  }
+
+  private getChatRepository(): MemoryChatRepository {
+    if (!this.chatRepository) {
+      this.chatRepository = new MemoryChatRepository(this.databaseManager);
+    }
+    return this.chatRepository;
+  }
+
+  private getChatMemberRepository(): MemoryChatMemberRepository {
+    if (!this.chatMemberRepository) {
+      this.chatMemberRepository = new MemoryChatMemberRepository(this.databaseManager);
+    }
+    return this.chatMemberRepository;
+  }
+
+  private getMessageRepository(): MemoryMessageRepository {
+    if (!this.messageRepository) {
+      this.messageRepository = new MemoryMessageRepository(this.databaseManager);
+    }
+    return this.messageRepository;
   }
 
   private generateId(): string {
@@ -16,17 +43,18 @@ export class DatabaseSeeder {
   }
 
   async seedDatabase(): Promise<void> {
-    LoggerUtil.info('Starting database seeding...');
-
     try {
-      // Seed users
+      LoggerUtil.info('Starting database seeding...');
+
+      // Seed users first
       const users = await this.seedUsers();
       LoggerUtil.info(`Seeded ${users.length} users`);
 
-      // Seed chats and messages
+      // Seed chats
       const chats = await this.seedChats(users);
       LoggerUtil.info(`Seeded ${chats.length} chats`);
 
+      // Seed messages
       const messageCount = await this.seedMessages(chats, users);
       LoggerUtil.info(`Seeded ${messageCount} messages`);
 
@@ -38,9 +66,8 @@ export class DatabaseSeeder {
   }
 
   private async seedUsers(): Promise<UserEntity[]> {
-    // Use the existing user repository from DatabaseManager
     const userRepository = this.databaseManager.getUserRepository();
-
+    
     const userData = [
       { username: 'alice', email: 'alice@example.com', password: 'letmepass' },
       { username: 'bob', email: 'bob@example.com', password: 'letmepass' },
@@ -70,7 +97,8 @@ export class DatabaseSeeder {
   }
 
   private async seedChats(users: UserEntity[]): Promise<ChatEntity[]> {
-    const database = this.databaseManager.getDatabase();
+    const chatRepository = this.getChatRepository();
+    const chatMemberRepository = this.getChatMemberRepository();
     const chats: ChatEntity[] = [];
 
     // Ensure we have enough users
@@ -101,28 +129,29 @@ export class DatabaseSeeder {
     ];
 
     for (const chatData of groupChats) {
-      const chat: ChatEntity = {
-        id: this.generateId(),
-        ...chatData,
-        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), // Random date within last week
-        updatedAt: new Date(),
+      const chatCreateData = {
+        name: chatData.name,
+        creatorId: chatData.creatorId,
+        isGroup: chatData.isGroup,
       };
 
-      await (database as any).createChat(chat);
-      chats.push(chat);
+      const chat = await chatRepository.create(chatCreateData);
+      
+      // Set random creation time within last week
+      const randomCreatedAt = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+      await chatRepository.update(chat.id, { createdAt: randomCreatedAt, updatedAt: randomCreatedAt });
+      
+      chats.push({ ...chat, createdAt: randomCreatedAt, updatedAt: randomCreatedAt });
 
       // Create chat members
       for (const memberId of chatData.memberIds) {
-        const member: ChatMemberEntity = {
-          id: this.generateId(),
+        await chatMemberRepository.create({
           chatId: chat.id,
           userId: memberId,
           role: memberId === chatData.creatorId ? ChatMemberRole.ADMIN : ChatMemberRole.MEMBER,
-          joinedAt: chat.createdAt,
+          joinedAt: randomCreatedAt,
           isActive: true,
-        };
-
-        await (database as any).createChatMember(member);
+        });
       }
     }
 
@@ -140,17 +169,19 @@ export class DatabaseSeeder {
         continue; // Skip if either user is undefined
       }
 
-      const chat: ChatEntity = {
-        id: this.generateId(),
+      const chatCreateData = {
         name: `${user1.username} & ${user2.username}`,
         creatorId: user1.id.toString(),
         isGroup: false,
-        createdAt: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000), // Random date within last 2 weeks
-        updatedAt: new Date(),
       };
 
-      await (database as any).createChat(chat);
-      chats.push(chat);
+      const chat = await chatRepository.create(chatCreateData);
+      
+      // Set random creation time within last 2 weeks
+      const randomCreatedAt = new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000);
+      await chatRepository.update(chat.id, { createdAt: randomCreatedAt, updatedAt: randomCreatedAt });
+      
+      chats.push({ ...chat, createdAt: randomCreatedAt, updatedAt: randomCreatedAt });
 
       // Create chat members for direct chat
       for (const user of [user1, user2]) {
@@ -158,16 +189,13 @@ export class DatabaseSeeder {
           continue; // Skip if user is undefined
         }
 
-        const member: ChatMemberEntity = {
-          id: this.generateId(),
+        await chatMemberRepository.create({
           chatId: chat.id,
           userId: user.id.toString(),
           role: ChatMemberRole.MEMBER,
-          joinedAt: chat.createdAt,
+          joinedAt: randomCreatedAt,
           isActive: true,
-        };
-
-        await (database as any).createChatMember(member);
+        });
       }
     }
 
@@ -175,7 +203,9 @@ export class DatabaseSeeder {
   }
 
   private async seedMessages(chats: ChatEntity[], users: UserEntity[]): Promise<number> {
-    const database = this.databaseManager.getDatabase();
+    const chatRepository = this.getChatRepository();
+    const chatMemberRepository = this.getChatMemberRepository();
+    const messageRepository = this.getMessageRepository();
     let messageCount = 0;
 
     const sampleMessages: string[] = [
@@ -203,49 +233,50 @@ export class DatabaseSeeder {
 
     for (const chat of chats) {
       // Get chat members
-      const members = await (database as any).getChatMembersByChatId(chat.id);
-      const activeMembers = members.filter((m: ChatMemberEntity) => m.isActive);
+      const members = await chatMemberRepository.getActiveMembers(chat.id);
 
-      if (activeMembers.length === 0) continue;
+      if (members.length === 0) continue;
 
       // Generate 5-15 messages per chat
       const numMessages = Math.floor(Math.random() * 10) + 5;
       let lastMessageTime = chat.createdAt.getTime();
+      let lastMessageId: string | undefined;
 
       for (let i = 0; i < numMessages; i++) {
-        const randomMember = activeMembers[Math.floor(Math.random() * activeMembers.length)];
+        const randomMember = members[Math.floor(Math.random() * members.length)];
         const randomMessage = sampleMessages[Math.floor(Math.random() * sampleMessages.length)];
 
         // Ensure we have a valid message content
-        if (!randomMessage) {
+        if (!randomMessage || !randomMember) {
           continue;
         }
 
         // Add some time variation between messages (5 minutes to 2 hours)
         lastMessageTime += Math.random() * 2 * 60 * 60 * 1000 + 5 * 60 * 1000;
 
-        const message: MessageEntity = {
-          id: this.generateId(),
+        const messageCreateData = {
           chatId: chat.id,
           userId: randomMember.userId,
           content: randomMessage,
           type: MessageType.TEXT,
-          createdAt: new Date(lastMessageTime),
         };
 
-        await (database as any).createMessage(message);
+        const message = await messageRepository.create(messageCreateData);
+        
+        // Update message creation time
+        await messageRepository.update(message.id, { createdAt: new Date(lastMessageTime) });
+        
         messageCount++;
-
-        // Update chat's last message and timestamp
-        chat.lastMessageId = message.id;
-        chat.updatedAt = message.createdAt;
+        lastMessageId = message.id;
       }
 
-      // Update the chat with the latest message info
-      await (database as any).updateChat(chat.id, {
-        lastMessageId: chat.lastMessageId,
-        updatedAt: chat.updatedAt,
-      });
+      // Update chat's last message and timestamp if we created messages
+      if (lastMessageId) {
+        await chatRepository.update(chat.id, {
+          lastMessageId: lastMessageId,
+          updatedAt: new Date(lastMessageTime),
+        });
+      }
     }
 
     return messageCount;

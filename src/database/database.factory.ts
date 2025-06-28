@@ -41,11 +41,14 @@ export class DatabaseFactory {
   }> {
     LoggerUtil.info('Creating memory database instance');
     
-    const connection = new MemoryDatabase();
-    const userRepository = new MemoryUserRepository(connection as MemoryDatabase);
+    // Create a single database instance
+    const database = new MemoryDatabase();
+    
+    // Create repositories using the same database instance
+    const userRepository = new MemoryUserRepository(database);
     
     return {
-      connection,
+      connection: database,
       repositories: {
         userRepository
       }
