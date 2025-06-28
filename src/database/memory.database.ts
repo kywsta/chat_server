@@ -66,7 +66,10 @@ export class MemoryDatabase implements DatabaseConnection {
   getCollection<T>(name: string): Map<number, T> {
     if (!this.collections.has(name)) {
       this.collections.set(name, new Map());
-      this.sequences.set(name, 0);
+      // Only initialize sequence if it doesn't already exist
+      if (!this.sequences.has(name)) {
+        this.sequences.set(name, 0);
+      }
     }
     return this.collections.get(name)!;
   }
