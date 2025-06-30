@@ -3,7 +3,7 @@ import express from 'express';
 import 'reflect-metadata';
 import { appConfig } from './config/app.config';
 import { DatabaseManager } from './database/database.manager';
-import { createGraphQLServer } from './graphql/server';
+import { createGraphQLServer, GraphQLServerSetup } from './graphql/server';
 import { requestLogger } from './middleware/app.middleware';
 import { errorHandler } from './middleware/error-handler.middleware';
 import { setupRoutes } from './routes';
@@ -11,6 +11,7 @@ import { ServiceManager } from './services/service.manager';
 import { LoggerUtil } from './utils/logger.util';
 
 const app = express();
+let graphqlSetup: GraphQLServerSetup;
 
 // Apply middleware
 app.use(cors(appConfig.cors));
@@ -81,9 +82,9 @@ async function initializeApp(): Promise<void> {
     // Seed database if needed
     await databaseManager.seedDatabase();
     
-    // Setup GraphQL endpoint
-    const graphqlMiddleware = await createGraphQLServer();
-    app.use('/graphql', cors(), graphqlMiddleware);
+    // Setup GraphQL endpoint with WebSocket support
+    graphqlSetup = await createGraphQLServer();
+    app.use('/graphql', cors(), graphqlSetup.expressMiddleware);
     
     // Setup REST routes AFTER services are initialized
     setupRoutes(app);
@@ -123,11 +124,16 @@ async function startServer(): Promise<void> {
   try {
     await initializeApp();
     
-    app.listen(appConfig.port, () => {
+    // Use the HTTP server from GraphQL setup to support WebSocket
+    graphqlSetup.httpServer.on('request', app);
+    
+    graphqlSetup.httpServer.listen(appConfig.port, () => {
       LoggerUtil.info(`Chat server running on port ${appConfig.port}`);
       LoggerUtil.info(`Environment: ${appConfig.env}`);
       LoggerUtil.info(`Database type: ${appConfig.database.type}`);
       LoggerUtil.info(`Health check: http://localhost:${appConfig.port}/health`);
+      LoggerUtil.info(`GraphQL endpoint: http://localhost:${appConfig.port}/graphql`);
+      LoggerUtil.info(`WebSocket subscriptions: ws://localhost:${appConfig.port}/graphql`);
     });
   } catch (error) {
     LoggerUtil.error('Failed to start server', error);

@@ -47,6 +47,50 @@ export async function createGraphQLContext({ req }: { req: Request }): Promise<G
 }
 
 /**
+ * Creates WebSocket context for GraphQL subscriptions
+ * Handles authentication through connection parameters
+ */
+export async function createWebSocketContext(ctx: any): Promise<GraphQLContext> {
+  try {
+    // Extract token from connection parameters
+    const connectionParams = ctx.connectionParams || {};
+    const authHeader = connectionParams.Authorization || connectionParams.authorization;
+    
+    const token = extractGraphQLToken(authHeader);
+    
+    if (!token) {
+      LoggerUtil.debug('No authentication token provided in WebSocket connection');
+      return { 
+        isAuthenticated: false
+      };
+    }
+
+    // Validate token using enhanced validation
+    const decoded = await validateGraphQLToken(token);
+    
+    LoggerUtil.debug('WebSocket context created with authenticated user', { 
+      userId: decoded.userId,
+      username: decoded.username 
+    });
+    
+    return {
+      user: decoded,
+      isAuthenticated: true,
+    };
+  } catch (error) {
+    // Log authentication failures for security monitoring
+    LoggerUtil.warn('WebSocket authentication failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      connectionParams: ctx.connectionParams ? 'provided' : 'none'
+    });
+    
+    return { 
+      isAuthenticated: false
+    };
+  }
+}
+
+/**
  * Legacy context creation function for backward compatibility
  * Uses the original simple JWT validation
  */
