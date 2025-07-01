@@ -26,11 +26,12 @@ export async function createGraphQLServer(): Promise<GraphQLServerSetup> {
   try {
     LoggerUtil.info('Building GraphQL schema...');
     LoggerUtil.info('Resolvers to register:', { resolvers: ['UserResolver', 'ChatResolver'] });
-    
+  
     // Build schema with Type-GraphQL
     const schema = await buildSchema({
       resolvers: [UserResolver, ChatResolver],
       validate: false, // Disable validation for now
+      pubSub: pubSub as any, // Type assertion to bypass compatibility issue
     });
 
     LoggerUtil.info('GraphQL schema built successfully');

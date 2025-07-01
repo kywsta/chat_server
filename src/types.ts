@@ -73,4 +73,29 @@ export interface ChatMember {
   role: 'admin' | 'member';
   joinedAt: Date;
   isActive: boolean;
+}
+
+// Subscription payload types
+export interface MessageAddedPayload {
+  messageAdded: Message;
+}
+
+export interface UserTypingPayload {
+  userTyping: {
+    chatId: string;
+    userId: string;
+    username: string;
+    isTyping: boolean;
+  };
+}
+
+export interface ChatMemberAddedPayload {
+  chatMemberAdded: ChatMember;
+}
+
+export interface ChatMemberRemovedPayload {
+  chatMemberRemoved: {
+    chatId: string;
+    userId: string;
+  };
 } 

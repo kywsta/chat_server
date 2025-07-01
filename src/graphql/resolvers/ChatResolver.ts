@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Arg, Ctx, Int, Mutation, Query, Resolver, UseMiddleware } from 'type-graphql';
+import { Arg, Ctx, Int, Mutation, Query, Resolver, Root, Subscription, UseMiddleware } from 'type-graphql';
 import { ChatMemberRole as DatabaseChatMemberRole, MessageType as DatabaseMessageType } from '../../database/interfaces/database.interface';
 import { ServiceManager } from '../../services/service.manager';
 import { GraphQLContext, Chat as ServiceChat, ChatMember as ServiceChatMember, Message as ServiceMessage } from '../../types';
@@ -8,9 +8,11 @@ import { AddMemberInput } from '../inputs/AddMemberInput';
 import { CreateChatInput } from '../inputs/CreateChatInput';
 import { SendMessageInput } from '../inputs/SendMessageInput';
 import { GraphQLAuthGuard } from '../middleware/auth.middleware';
+import { pubSub } from '../server';
 import { Chat } from '../types/Chat';
 import { ChatMember, ChatMemberRole } from '../types/ChatMember';
 import { Message, MessageType } from '../types/Message';
+import { TypingIndicator } from '../types/TypingIndicator';
 
 @Resolver()
 export class ChatResolver {
@@ -224,8 +226,25 @@ export class ChatResolver {
         chatId: message.chatId,
         userId: message.userId
       });
+
+      // Map to GraphQL message
+      const graphqlMessage = this.mapServiceMessageToGraphQL(message);
       
-      return this.mapServiceMessageToGraphQL(message);
+      // Trigger subscription for new message
+      try {
+        await pubSub.publish(`MESSAGE_ADDED_${input.chatId}`, {
+          messageAdded: graphqlMessage,
+        });
+        LoggerUtil.debug('Message subscription triggered', { 
+          chatId: input.chatId, 
+          messageId: message.id 
+        });
+      } catch (error) {
+        LoggerUtil.error('Failed to trigger message subscription', error);
+        // Don't fail the mutation if subscription fails
+      }
+      
+      return graphqlMessage;
     } catch (error) {
       LoggerUtil.error('GraphQL sendMessage failed', error);
       throw error;
@@ -384,6 +403,121 @@ export class ChatResolver {
         return DatabaseChatMemberRole.MEMBER;
       default:
         return DatabaseChatMemberRole.MEMBER;
+    }
+  }
+
+  // SUBSCRIPTIONS
+
+  @Subscription(() => Message, {
+    subscribe: ({ args, context }) => {
+      // Check authentication
+      if (!context.isAuthenticated || !context.user) {
+        throw new Error('Authentication required');
+      }
+      
+      const topic = `MESSAGE_ADDED_${args.chatId}`;
+      LoggerUtil.debug('GraphQL messageAdded subscription started', { 
+        chatId: args.chatId, 
+        userId: context.user.userId,
+        topic
+      });
+      
+      return pubSub.asyncIterableIterator(topic);
+    },
+  })
+  messageAdded(
+    @Arg('chatId') chatId: string,
+    @Root() messagePayload: { messageAdded: Message },
+    @Ctx() context: GraphQLContext
+  ): Message {
+    LoggerUtil.debug('GraphQL messageAdded subscription delivering message', { 
+      chatId, 
+      messageId: messagePayload.messageAdded.id 
+    });
+    return messagePayload.messageAdded;
+  }
+
+  @Subscription(() => TypingIndicator, {
+    subscribe: ({ args, context }) => {
+      // Check authentication
+      if (!context.isAuthenticated || !context.user) {
+        throw new Error('Authentication required');
+      }
+      
+      const topic = `TYPING_${args.chatId}`;
+      LoggerUtil.debug('GraphQL typingIndicator subscription started', { 
+        chatId: args.chatId, 
+        userId: context.user.userId,
+        topic
+      });
+      
+      return pubSub.asyncIterableIterator(topic);
+    },
+  })
+  typingIndicator(
+    @Arg('chatId') chatId: string,
+    @Root() typingPayload: { userTyping: TypingIndicator },
+    @Ctx() context: GraphQLContext
+  ): TypingIndicator {
+    LoggerUtil.debug('GraphQL typingIndicator subscription delivering indicator', { 
+      chatId, 
+      userId: typingPayload.userTyping.userId,
+      isTyping: typingPayload.userTyping.isTyping
+    });
+    return typingPayload.userTyping;
+  }
+
+  // TYPING MUTATION
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(GraphQLAuthGuard)
+  async setTypingStatus(
+    @Arg('chatId') chatId: string,
+    @Arg('isTyping') isTyping: boolean,
+    @Ctx() context: GraphQLContext
+  ): Promise<boolean> {
+    try {
+      LoggerUtil.debug('GraphQL setTypingStatus called', { 
+        chatId, 
+        isTyping, 
+        userId: context.user?.userId 
+      });
+
+      const chatService = this.serviceManager.getChatService();
+      const userId = context.user!.userId.toString();
+
+      // Check if user is a member of the chat
+      const isMember = await chatService.isUserMemberOfChat(chatId, userId);
+      if (!isMember) {
+        throw new Error('You are not a member of this chat');
+      }
+
+      // Create typing indicator payload
+      const typingIndicator = new TypingIndicator();
+      typingIndicator.chatId = chatId;
+      typingIndicator.userId = userId;
+      typingIndicator.username = context.user!.username;
+      typingIndicator.isTyping = isTyping;
+
+      // Trigger subscription for typing indicator
+      try {
+        await pubSub.publish(`TYPING_${chatId}`, {
+          userTyping: typingIndicator,
+        });
+        LoggerUtil.debug('Typing indicator subscription triggered', { 
+          chatId, 
+          userId, 
+          isTyping 
+        });
+      } catch (error) {
+        LoggerUtil.error('Failed to trigger typing indicator subscription', error);
+        // Don't fail the mutation if subscription fails
+      }
+
+      return true;
+    } catch (error) {
+      LoggerUtil.error('GraphQL setTypingStatus failed', error);
+      throw error;
     }
   }
 } 
