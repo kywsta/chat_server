@@ -71,6 +71,8 @@ export class MessageService {
     try {
       LoggerUtil.debug('Getting chat messages', { chatId, limit, offset, userId });
 
+      // For chat apps: Get most recent messages first (DESC), then reverse for display
+      // This allows proper pagination where offset=0 gets latest messages
       const messages = await this.messageRepository.findByChatId(chatId, {
         limit,
         offset,
@@ -78,8 +80,12 @@ export class MessageService {
         orderDirection: 'DESC'
       });
 
-      LoggerUtil.debug('Found chat messages', { chatId, count: messages.length });
-      return messages.map(message => this.mapMessageEntityToMessage(message));
+      // Reverse the messages so they appear in chronological order (oldest first)
+      // This way the client displays them naturally: older messages at top, newer at bottom
+      const orderedMessages = messages.reverse();
+
+      LoggerUtil.debug('Found chat messages', { chatId, count: orderedMessages.length });
+      return orderedMessages.map(message => this.mapMessageEntityToMessage(message));
     } catch (error) {
       LoggerUtil.error('Failed to get chat messages', error);
       throw error;

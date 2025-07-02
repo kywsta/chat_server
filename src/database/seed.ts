@@ -231,28 +231,105 @@ export class DatabaseSeeder {
       'This is going to be a productive meeting.',
     ];
 
+    // Extended messages for Alice & Bob chat
+    const aliceBobMessages: string[] = [
+      'Hey Alice! How are you doing?',
+      'Hi Bob! I\'m doing great, thanks for asking!',
+      'That\'s awesome! What have you been up to lately?',
+      'Just working on some new projects. How about you?',
+      'Same here! I\'ve been learning some new technologies.',
+      'That sounds interesting! What kind of technologies?',
+      'Mostly GraphQL and real-time messaging stuff.',
+      'Oh cool! I\'ve been working with Flutter recently.',
+      'Flutter is amazing! Are you building mobile apps?',
+      'Yes, I\'m working on a chat application actually.',
+      'That\'s a coincidence! I\'m working on the backend for a chat app.',
+      'Really? Maybe we should collaborate sometime!',
+      'That would be great! I\'d love to see what you\'re building.',
+      'I\'ll show you next time we meet.',
+      'Sounds like a plan!',
+      'By the way, have you tried the new restaurant downtown?',
+      'No, I haven\'t. Is it good?',
+      'It\'s fantastic! They have amazing pasta.',
+      'I love pasta! We should go there together.',
+      'Definitely! How about this weekend?',
+      'This weekend sounds perfect!',
+      'Great! I\'ll make a reservation.',
+      'Thanks! I\'m looking forward to it.',
+      'Me too! It\'ll be fun to catch up.',
+      'Absolutely! See you this weekend then.',
+      'See you then!',
+      'Oh, and don\'t forget to bring your appetite!',
+      'Haha, I won\'t! I\'m always hungry.',
+      'Perfect! This is going to be great.',
+      'I couldn\'t agree more!',
+      'Hey, did you see the latest movie that came out?',
+      'Which one are you talking about?',
+      'The new sci-fi thriller everyone\'s talking about.',
+      'Oh yes! I\'ve been wanting to watch it.',
+      'We should go see it after dinner!',
+      'That\'s a great idea! A perfect evening.',
+      'Exactly! Dinner and a movie.',
+      'I can\'t wait! This weekend is going to be amazing.',
+      'It really is! Thanks for planning this.',
+      'My pleasure! Thanks for being such a great friend.',
+      'Aww, you\'re the best Bob!',
+      'You\'re pretty awesome yourself, Alice!',
+      'This conversation is making me smile.',
+      'Same here! I\'m really glad we reconnected.',
+      'Me too! We should do this more often.',
+      'Absolutely! Regular catch-ups are the best.',
+      'I agree! Friends are so important.',
+      'They really are. I\'m lucky to have you as a friend.',
+      'The feeling is mutual!',
+      'Alright, I should probably get back to work.',
+      'Same here! But this was really nice.',
+      'It was! Talk to you soon!',
+      'Talk to you soon, Alice!',
+    ];
+
     for (const chat of chats) {
       // Get chat members
       const members = await chatMemberRepository.findActiveMembers(chat.id);
 
       if (members.length === 0) continue;
 
-      // Generate 5-15 messages per chat
-      const numMessages = Math.floor(Math.random() * 10) + 5;
+      // Check if this is the Alice & Bob chat
+      const isAliceBobChat = chat.name === 'alice & bob' && members.length === 2;
+      
+      // Generate more messages for Alice & Bob chat, fewer for others
+      const numMessages = isAliceBobChat ? 50 : Math.floor(Math.random() * 10) + 5;
+      const messagesToUse = isAliceBobChat ? aliceBobMessages : sampleMessages;
+      
       let lastMessageTime = chat.createdAt.getTime();
       let lastMessageId: string | undefined;
 
       for (let i = 0; i < numMessages; i++) {
-        const randomMember = members[Math.floor(Math.random() * members.length)];
-        const randomMessage = sampleMessages[Math.floor(Math.random() * sampleMessages.length)];
+        let randomMember;
+        let randomMessage;
+
+        if (isAliceBobChat) {
+          // For Alice & Bob chat, alternate between users for more realistic conversation
+          randomMember = members[i % 2];
+          randomMessage = messagesToUse[i % messagesToUse.length];
+        } else {
+          randomMember = members[Math.floor(Math.random() * members.length)];
+          randomMessage = messagesToUse[Math.floor(Math.random() * messagesToUse.length)];
+        }
 
         // Ensure we have a valid message content
         if (!randomMessage || !randomMember) {
           continue;
         }
 
-        // Add some time variation between messages (5 minutes to 2 hours)
-        lastMessageTime += Math.random() * 2 * 60 * 60 * 1000 + 5 * 60 * 1000;
+        // Add some time variation between messages
+        // For Alice & Bob: 2-30 minutes between messages for realistic conversation
+        // For others: 5 minutes to 2 hours
+        const timeVariation = isAliceBobChat 
+          ? Math.random() * 28 * 60 * 1000 + 2 * 60 * 1000  // 2-30 minutes
+          : Math.random() * 2 * 60 * 60 * 1000 + 5 * 60 * 1000; // 5 minutes to 2 hours
+        
+        lastMessageTime += timeVariation;
 
         const messageCreateData = {
           chatId: chat.id,
