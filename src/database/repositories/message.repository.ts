@@ -1,7 +1,7 @@
 import { DatabaseManager } from '../database.manager';
 import { FindOptions, MessageEntity, MessageRepository, MessageType, PaginatedMessages, PaginationParams } from '../interfaces/database.interface';
-import { MemoryDatabase, MemoryStringRepository } from '../memory.database';
-import { QueryBuilder } from '../utils/query-builder.util';
+import { MemoryDatabase, MemoryStringRepository } from '../memory_database/memory.database';
+import { QueryBuilder } from '../memory_database/query-builder.util';
 
 export class MemoryMessageRepository implements MessageRepository {
   private repository: MemoryStringRepository<MessageEntity>;

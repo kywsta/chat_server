@@ -1,5 +1,5 @@
-import { FilterOperator } from '../interfaces/database.interface';
-import { QueryBuilder } from '../utils/query-builder.util';
+import { FilterOperator } from '../../interfaces/database.interface';
+import { QueryBuilder } from '../query-builder.util';
 
 /**
  * Examples of using the new conditional filtering system

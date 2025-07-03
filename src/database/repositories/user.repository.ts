@@ -1,6 +1,6 @@
 import { LoggerUtil } from '../../utils/logger.util';
 import { UserEntity, UserRepository } from '../interfaces/database.interface';
-import { MemoryDatabase, MemoryRepository } from '../memory.database';
+import { MemoryDatabase, MemoryRepository } from '../memory_database/memory.database';
 
 export class MemoryUserRepository extends MemoryRepository<UserEntity> implements UserRepository {
   constructor(database: MemoryDatabase) {

@@ -1,8 +1,8 @@
 import { LoggerUtil } from '../../utils/logger.util';
 import { DatabaseManager } from '../database.manager';
 import { ChatEntity, ChatRepository, FindOptions, PaginatedChats, PaginationParams } from '../interfaces/database.interface';
-import { MemoryDatabase, MemoryStringRepository } from '../memory.database';
-import { QueryBuilder } from '../utils/query-builder.util';
+import { MemoryDatabase, MemoryStringRepository } from '../memory_database/memory.database';
+import { QueryBuilder } from '../memory_database/query-builder.util';
 
 export class MemoryChatRepository implements ChatRepository {
   private repository: MemoryStringRepository<ChatEntity>;

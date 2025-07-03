@@ -1,6 +1,6 @@
 import { LoggerUtil } from '../utils/logger.util';
 import { DatabaseConnection, UserRepository } from './interfaces/database.interface';
-import { MemoryDatabase } from './memory.database';
+import { MemoryDatabase } from './memory_database/memory.database';
 import { MemoryUserRepository } from './repositories/user.repository';
 
 export type DatabaseType = 'memory' | 'postgresql' | 'mongodb' | 'mysql';

@@ -1,7 +1,7 @@
 import { LoggerUtil } from '../../utils/logger.util';
 import { DatabaseManager } from '../database.manager';
 import { ChatMemberEntity, ChatMemberRepository, ChatMemberRole, FindOptions } from '../interfaces/database.interface';
-import { MemoryDatabase } from '../memory.database';
+import { MemoryDatabase } from '../memory_database/memory.database';
 
 // Specialized repository for ChatMemberEntity with its unique structure
 class ChatMemberStringRepository {

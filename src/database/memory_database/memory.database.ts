@@ -1,6 +1,6 @@
-import { LoggerUtil } from '../utils/logger.util';
-import { DatabaseConnection, DatabaseHealth, FindOptions, Repository } from './interfaces/database.interface';
-import { FilterUtil } from './utils/filter.util';
+import { LoggerUtil } from '../../utils/logger.util';
+import { DatabaseConnection, DatabaseHealth, FindOptions, Repository } from '../interfaces/database.interface';
+import { FilterUtil } from './filter.util';
 
 export class MemoryDatabase implements DatabaseConnection {
   private connected: boolean = false;
