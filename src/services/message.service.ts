@@ -74,37 +74,7 @@ export class MessageService {
     }
   }
 
-  async getChatMessages(
-    chatId: string, 
-    limit: number = 50, 
-    offset: number = 0,
-    userId?: string
-  ): Promise<Message[]> {
-    try {
-      LoggerUtil.debug('Getting chat messages', { chatId, limit, offset, userId });
-
-      // For chat apps: Get most recent messages first (DESC), then reverse for display
-      // This allows proper pagination where offset=0 gets latest messages
-      const messages = await this.messageRepository.findByChatId(chatId, {
-        limit,
-        offset,
-        orderBy: 'createdAt',
-        orderDirection: 'DESC'
-      });
-
-      // Reverse the messages so they appear in chronological order (oldest first)
-      // This way the client displays them naturally: older messages at top, newer at bottom
-      const orderedMessages = messages.reverse();
-
-      LoggerUtil.debug('Found chat messages', { chatId, count: orderedMessages.length });
-      return orderedMessages.map(message => this.mapMessageEntityToMessage(message));
-    } catch (error) {
-      LoggerUtil.error('Failed to get chat messages', error);
-      throw error;
-    }
-  }
-
-  async getChatMessagesConnection(args: MessageConnectionArgs) {
+  async getChatMessages(args: MessageConnectionArgs) {
     try {
       LoggerUtil.debug('Getting chat messages with pagination', { chatId: args.chatId, first: args.first, after: args.after });
 
@@ -128,49 +98,6 @@ export class MessageService {
       );
     } catch (error) {
       LoggerUtil.error('Failed to get chat messages connection', error);
-      throw error;
-    }
-  }
-
-  async getMessageById(messageId: string): Promise<Message | null> {
-    try {
-      const message = await this.messageRepository.findById(messageId);
-      return message ? this.mapMessageEntityToMessage(message) : null;
-    } catch (error) {
-      LoggerUtil.error('Failed to get message by ID', error);
-      throw error;
-    }
-  }
-
-  async getUserMessages(userId: string, limit: number = 50, offset: number = 0): Promise<Message[]> {
-    try {
-      LoggerUtil.debug('Getting user messages', { userId, limit, offset });
-
-      const messages = await this.messageRepository.findByUserId(userId, {
-        limit,
-        offset,
-        orderBy: 'createdAt',
-        orderDirection: 'DESC'
-      });
-
-      LoggerUtil.debug('Found user messages', { userId, count: messages.length });
-      return messages.map(message => this.mapMessageEntityToMessage(message));
-    } catch (error) {
-      LoggerUtil.error('Failed to get user messages', error);
-      throw error;
-    }
-  }
-
-  async getMessageReplies(messageId: string): Promise<Message[]> {
-    try {
-      LoggerUtil.debug('Getting message replies', { messageId });
-
-      const replies = await this.messageRepository.findReplies(messageId);
-
-      LoggerUtil.debug('Found message replies', { messageId, count: replies.length });
-      return replies.map(reply => this.mapMessageEntityToMessage(reply));
-    } catch (error) {
-      LoggerUtil.error('Failed to get message replies', error);
       throw error;
     }
   }
@@ -206,46 +133,6 @@ export class MessageService {
       return deleted;
     } catch (error) {
       LoggerUtil.error('Failed to delete message', error);
-      throw error;
-    }
-  }
-
-  async getChatMessageCount(chatId: string): Promise<number> {
-    try {
-      const count = await this.messageRepository.getMessageCount(chatId);
-      LoggerUtil.debug('Got chat message count', { chatId, count });
-      return count;
-    } catch (error) {
-      LoggerUtil.error('Failed to get chat message count', error);
-      throw error;
-    }
-  }
-
-  async getLatestChatMessage(chatId: string): Promise<Message | null> {
-    try {
-      const message = await this.messageRepository.getLatestMessage(chatId);
-      return message ? this.mapMessageEntityToMessage(message) : null;
-    } catch (error) {
-      LoggerUtil.error('Failed to get latest chat message', error);
-      throw error;
-    }
-  }
-
-  async getMessagesByType(type: MessageType, limit: number = 50, offset: number = 0): Promise<Message[]> {
-    try {
-      LoggerUtil.debug('Getting messages by type', { type, limit, offset });
-
-      const messages = await this.messageRepository.findByType(type, {
-        limit,
-        offset,
-        orderBy: 'createdAt',
-        orderDirection: 'DESC'
-      });
-
-      LoggerUtil.debug('Found messages by type', { type, count: messages.length });
-      return messages.map(message => this.mapMessageEntityToMessage(message));
-    } catch (error) {
-      LoggerUtil.error('Failed to get messages by type', error);
       throw error;
     }
   }

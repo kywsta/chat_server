@@ -61,35 +61,7 @@ export class ChatService {
     }
   }
 
-  async getUserChats(userId: string): Promise<Chat[]> {
-    try {
-      LoggerUtil.debug('Getting user chats', { userId });
-
-      // Get all chat memberships for the user
-      const memberships = await this.chatMemberRepository.findByUserId(userId);
-      const activeMemberships = memberships.filter(membership => membership.isActive);
-
-      // Get the chats for these memberships
-      const chats: Chat[] = [];
-      for (const membership of activeMemberships) {
-        const chat = await this.chatRepository.findById(membership.chatId);
-        if (chat) {
-          chats.push(this.mapChatEntityToChat(chat));
-        }
-      }
-
-      // Sort by updatedAt descending
-      chats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-
-      LoggerUtil.debug('Found user chats', { userId, count: chats.length });
-      return chats;
-    } catch (error) {
-      LoggerUtil.error('Failed to get user chats', error);
-      throw error;
-    }
-  }
-
-  async getUserChatsConnection(userId: string, args: ChatConnectionArgs) {
+  async getChats(userId: string, args: ChatConnectionArgs) {
     try {
       LoggerUtil.debug('Getting user chats with pagination', { userId, first: args.first, after: args.after });
 
@@ -113,7 +85,7 @@ export class ChatService {
         );
       }
 
-      if (args.isGroup !== undefined) {
+      if (args.isGroup || args.isGroup === false) {
         chats = chats.filter(chat => chat.isGroup === args.isGroup);
       }
 
@@ -165,26 +137,6 @@ export class ChatService {
     }
   }
 
-  async getUserGroupChats(userId: string): Promise<Chat[]> {
-    try {
-      const userChats = await this.getUserChats(userId);
-      return userChats.filter(chat => chat.isGroup);
-    } catch (error) {
-      LoggerUtil.error('Failed to get user group chats', error);
-      throw error;
-    }
-  }
-
-  async getUserDirectChats(userId: string): Promise<Chat[]> {
-    try {
-      const userChats = await this.getUserChats(userId);
-      return userChats.filter(chat => !chat.isGroup);
-    } catch (error) {
-      LoggerUtil.error('Failed to get user direct chats', error);
-      throw error;
-    }
-  }
-
   async getChatById(chatId: string): Promise<Chat | null> {
     try {
       const chat = await this.chatRepository.findById(chatId);
@@ -205,20 +157,6 @@ export class ChatService {
       return members.map(member => this.mapChatMemberEntityToChatMember(member));
     } catch (error) {
       LoggerUtil.error('Failed to get chat members', error);
-      throw error;
-    }
-  }
-
-  async getChatAdmins(chatId: string): Promise<ChatMember[]> {
-    try {
-      LoggerUtil.debug('Getting chat admins', { chatId });
-
-      const admins = await this.chatMemberRepository.findMembersByRole(chatId, ChatMemberRole.ADMIN);
-      
-      LoggerUtil.debug('Found chat admins', { chatId, count: admins.length });
-      return admins.map(member => this.mapChatMemberEntityToChatMember(member));
-    } catch (error) {
-      LoggerUtil.error('Failed to get chat admins', error);
       throw error;
     }
   }
@@ -315,13 +253,6 @@ export class ChatService {
     } catch (error) {
       LoggerUtil.error('Failed to check chat membership', error);
       return false;
-    }
-  }
-
-  async validateUserChatAccess(userId: string, chatId: string): Promise<void> {
-    const hasAccess = await this.isUserMemberOfChat(chatId, userId);
-    if (!hasAccess) {
-      throw new Error('User does not have access to this chat');
     }
   }
 
