@@ -298,8 +298,9 @@ export class DatabaseSeeder {
       const isAliceBobChat = chat.name === 'alice & bob' && members.length === 2;
       
       // Generate more messages for Alice & Bob chat, fewer for others
-      const numMessages = isAliceBobChat ? 50 : Math.floor(Math.random() * 10) + 5;
+      // For Alice & Bob: use all available messages in the array
       const messagesToUse = isAliceBobChat ? aliceBobMessages : sampleMessages;
+      const numMessages = isAliceBobChat ? messagesToUse.length : Math.floor(Math.random() * 10) + 5;
       
       let lastMessageTime = chat.createdAt.getTime();
       let lastMessageId: string | undefined;
@@ -311,7 +312,8 @@ export class DatabaseSeeder {
         if (isAliceBobChat) {
           // For Alice & Bob chat, alternate between users for more realistic conversation
           randomMember = members[i % 2];
-          randomMessage = messagesToUse[i % messagesToUse.length];
+          // Use messages in order for Alice & Bob chat to maintain conversation flow
+          randomMessage = messagesToUse[i];
         } else {
           randomMember = members[Math.floor(Math.random() * members.length)];
           randomMessage = messagesToUse[Math.floor(Math.random() * messagesToUse.length)];
