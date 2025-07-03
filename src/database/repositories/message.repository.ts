@@ -1,7 +1,7 @@
-import { LoggerUtil } from '../../utils/logger.util';
 import { DatabaseManager } from '../database.manager';
-import { FindOptions, MessageEntity, MessageRepository, MessageType } from '../interfaces/database.interface';
+import { FindOptions, MessageEntity, MessageRepository, MessageType, PaginatedMessages, PaginationParams } from '../interfaces/database.interface';
 import { MemoryDatabase, MemoryStringRepository } from '../memory.database';
+import { QueryBuilder } from '../utils/query-builder.util';
 
 export class MemoryMessageRepository implements MessageRepository {
   private repository: MemoryStringRepository<MessageEntity>;
@@ -13,7 +13,6 @@ export class MemoryMessageRepository implements MessageRepository {
 
   async create(data: Omit<MessageEntity, 'id' | 'createdAt' | 'updatedAt'>): Promise<MessageEntity> {
     const message = await this.repository.create(data);
-    LoggerUtil.debug('Message created', { messageId: message.id, chatId: message.chatId, userId: message.userId });
     return message;
   }
 
@@ -67,7 +66,7 @@ export class MemoryMessageRepository implements MessageRepository {
   }
 
   async updateContent(messageId: string, content: string): Promise<MessageEntity | null> {
-    return this.update(messageId, { content, updatedAt: new Date() });
+    return this.repository.update(messageId, { content, updatedAt: new Date() });
   }
 
   async getMessageCount(chatId: string): Promise<number> {
@@ -87,5 +86,28 @@ export class MemoryMessageRepository implements MessageRepository {
       orderDirection: options?.orderDirection || 'DESC'
     };
     return this.repository.findAll(mergedOptions);
+  }
+
+  // Pagination methods
+  async getChatMessagesPaginated(chatId: string, params: PaginationParams): Promise<PaginatedMessages> {
+    const queryBuilder = QueryBuilder.create()
+      .whereEquals('chatId', chatId)
+      .orderBy('createdAt', params.direction === 'forward' ? 'ASC' : 'DESC');
+
+    if (params.afterCursor) {
+      queryBuilder.whereGreaterThan('createdAt', params.afterCursor!.timestamp);
+    }
+
+    if (params.beforeCursor) {
+      queryBuilder.whereLessThan('createdAt', params.beforeCursor!.timestamp);
+    }
+
+    const options = queryBuilder.limit(params.limit).build();
+
+    const messages = await this.repository.findAll(options);
+
+    const totalCount = 0;
+
+    return { messages, totalCount };
   }
 } 

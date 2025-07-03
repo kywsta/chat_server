@@ -1,8 +1,10 @@
 import { MessageEntity, MessageType } from '../database/interfaces/database.interface';
 import { MemoryChatRepository } from '../database/repositories/chat.repository';
 import { MemoryMessageRepository } from '../database/repositories/message.repository';
+import { MessageConnectionArgs } from '../graphql/inputs/MessageConnectionArgs';
 import { Message } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
+import { PaginationUtil } from '../utils/pagination.util';
 
 export class MessageService {
   private messageRepository: MemoryMessageRepository;
@@ -24,8 +26,18 @@ export class MessageService {
     replyToId?: string
   ): Promise<Message> {
     try {
-      LoggerUtil.debug('Sending message', { chatId, userId, content: content.substring(0, 50), type, replyToId });
+      LoggerUtil.debug('Sending message', { chatId, userId, content: content.substring(0, 50), type });
 
+      // Business logic: Validate message content
+      if (!content || content.trim().length === 0) {
+        throw new Error('Message content cannot be empty');
+      }
+
+      if (content.length > 1000) {
+        throw new Error('Message content too long');
+      }
+
+      // Create message data
       const messageData: Omit<MessageEntity, 'id' | 'createdAt' | 'updatedAt'> = {
         chatId,
         userId,
@@ -88,6 +100,34 @@ export class MessageService {
       return orderedMessages.map(message => this.mapMessageEntityToMessage(message));
     } catch (error) {
       LoggerUtil.error('Failed to get chat messages', error);
+      throw error;
+    }
+  }
+
+  async getChatMessagesConnection(args: MessageConnectionArgs) {
+    try {
+      LoggerUtil.debug('Getting chat messages with pagination', { chatId: args.chatId, first: args.first, after: args.after });
+
+      const paginationParams = PaginationUtil.parsePaginationArgs(args);
+      const result = await this.messageRepository.getChatMessagesPaginated(
+        args.chatId,
+        paginationParams
+      );
+
+      LoggerUtil.debug('Found paginated chat messages', { 
+        chatId: args.chatId, 
+        count: result.messages.length, 
+        totalCount: result.totalCount 
+      });
+
+      return PaginationUtil.buildConnection(
+        result.messages,
+        args,
+        result.totalCount,
+        paginationParams.direction
+      );
+    } catch (error) {
+      LoggerUtil.error('Failed to get chat messages connection', error);
       throw error;
     }
   }

@@ -1,8 +1,10 @@
 import { ChatEntity, ChatMemberEntity, ChatMemberRole } from '../database/interfaces/database.interface';
 import { MemoryChatMemberRepository } from '../database/repositories/chat-member.repository';
 import { MemoryChatRepository } from '../database/repositories/chat.repository';
+import { ChatConnectionArgs } from '../graphql/inputs/ChatConnectionArgs';
 import { Chat, ChatMember } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
+import { PaginationUtil } from '../utils/pagination.util';
 
 export class ChatService {
   private chatRepository: MemoryChatRepository;
@@ -63,25 +65,102 @@ export class ChatService {
     try {
       LoggerUtil.debug('Getting user chats', { userId });
 
-      // Business logic: Get user's chat memberships, then fetch the chats
+      // Get all chat memberships for the user
       const memberships = await this.chatMemberRepository.findByUserId(userId);
       const activeMemberships = memberships.filter(membership => membership.isActive);
-      
-      const chatIds = activeMemberships.map(membership => membership.chatId);
-      
-      // Fetch all chats that the user is a member of
-      const chats: ChatEntity[] = [];
-      for (const chatId of chatIds) {
-        const chat = await this.chatRepository.findById(chatId);
+
+      // Get the chats for these memberships
+      const chats: Chat[] = [];
+      for (const membership of activeMemberships) {
+        const chat = await this.chatRepository.findById(membership.chatId);
+        if (chat) {
+          chats.push(this.mapChatEntityToChat(chat));
+        }
+      }
+
+      // Sort by updatedAt descending
+      chats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+      LoggerUtil.debug('Found user chats', { userId, count: chats.length });
+      return chats;
+    } catch (error) {
+      LoggerUtil.error('Failed to get user chats', error);
+      throw error;
+    }
+  }
+
+  async getUserChatsConnection(userId: string, args: ChatConnectionArgs) {
+    try {
+      LoggerUtil.debug('Getting user chats with pagination', { userId, first: args.first, after: args.after });
+
+      // Get all chat memberships for the user
+      const memberships = await this.chatMemberRepository.findByUserId(userId);
+      const activeMemberships = memberships.filter(membership => membership.isActive);
+
+      // Get the chats for these memberships
+      let chats: ChatEntity[] = [];
+      for (const membership of activeMemberships) {
+        const chat = await this.chatRepository.findById(membership.chatId);
         if (chat) {
           chats.push(chat);
         }
       }
+
+      // Apply filters
+      if (args.searchTerm) {
+        chats = chats.filter(chat => 
+          chat.name.toLowerCase().includes(args.searchTerm!.toLowerCase())
+        );
+      }
+
+      if (args.isGroup !== undefined) {
+        chats = chats.filter(chat => chat.isGroup === args.isGroup);
+      }
+
+      // Sort by updatedAt descending for pagination
+      chats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+      const totalCount = chats.length;
+
+      // Apply cursor-based pagination
+      const paginationParams = PaginationUtil.parseChatPaginationArgs(args);
       
-      LoggerUtil.debug('Found user chats', { userId, count: chats.length });
-      return chats.map(chat => this.mapChatEntityToChat(chat));
+      // Apply cursor filters
+      if (paginationParams.afterCursor) {
+        chats = chats.filter(chat => 
+          chat.updatedAt < paginationParams.afterCursor!.timestamp ||
+          (chat.updatedAt.getTime() === paginationParams.afterCursor!.timestamp.getTime() && 
+           chat.id < paginationParams.afterCursor!.id)
+        );
+      }
+
+      if (paginationParams.beforeCursor) {
+        chats = chats.filter(chat => 
+          chat.updatedAt > paginationParams.beforeCursor!.timestamp ||
+          (chat.updatedAt.getTime() === paginationParams.beforeCursor!.timestamp.getTime() && 
+           chat.id > paginationParams.beforeCursor!.id)
+        );
+      }
+
+      // Apply limit
+      chats = chats.slice(0, paginationParams.limit);
+
+      // Map to service Chat objects
+      const mappedChats = chats.map(chat => this.mapChatEntityToChat(chat));
+
+      LoggerUtil.debug('Found paginated user chats', { 
+        userId, 
+        count: mappedChats.length, 
+        totalCount 
+      });
+
+      return PaginationUtil.buildChatConnection(
+        mappedChats,
+        args,
+        totalCount
+      );
     } catch (error) {
-      LoggerUtil.error('Failed to get user chats', error);
+      LoggerUtil.error('Failed to get user chats connection', error);
       throw error;
     }
   }
@@ -183,16 +262,16 @@ export class ChatService {
     try {
       LoggerUtil.debug('Removing member from chat', { chatId, userId });
 
-      // Business logic: Find member and deactivate
       const member = await this.chatMemberRepository.findByChatAndUser(chatId, userId);
       if (!member) {
-        LoggerUtil.warn('Cannot remove - member not found', { chatId, userId });
+        LoggerUtil.warn('Cannot remove member - member not found', { chatId, userId });
         return false;
       }
 
-      const updatedMember = await this.chatMemberRepository.update(member.id, { isActive: false });
+      // Deactivate member instead of deleting
+      const updated = await this.chatMemberRepository.update(member.id, { isActive: false });
       
-      if (updatedMember) {
+      if (updated) {
         LoggerUtil.info('Member removed from chat successfully', { chatId, userId, memberId: member.id });
         return true;
       }
@@ -234,7 +313,7 @@ export class ChatService {
       const member = await this.chatMemberRepository.findByChatAndUser(chatId, userId);
       return member !== null && member.isActive;
     } catch (error) {
-      LoggerUtil.error('Failed to check if user is member of chat', error);
+      LoggerUtil.error('Failed to check chat membership', error);
       return false;
     }
   }

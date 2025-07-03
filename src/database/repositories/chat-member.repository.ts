@@ -29,7 +29,6 @@ class ChatMemberStringRepository {
     const collection = this.getCollection();
     collection.set(id, entity);
     
-    LoggerUtil.debug(`ChatMember created in ${this.collectionName}`, { id });
     return entity;
   }
 
@@ -87,17 +86,12 @@ class ChatMemberStringRepository {
     } as ChatMemberEntity;
 
     collection.set(id, updated);
-    LoggerUtil.debug(`ChatMember updated in ${this.collectionName}`, { id });
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
     const collection = this.getCollection();
     const deleted = collection.delete(id);
-    
-    if (deleted) {
-      LoggerUtil.debug(`ChatMember deleted from ${this.collectionName}`, { id });
-    }
     
     return deleted;
   }

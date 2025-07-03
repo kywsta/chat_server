@@ -1,11 +1,13 @@
 import 'reflect-metadata';
-import { Arg, Ctx, Int, Mutation, Query, Resolver, Root, Subscription, UseMiddleware } from 'type-graphql';
+import { Arg, Args, Ctx, Int, Mutation, Query, Resolver, Root, Subscription, UseMiddleware } from 'type-graphql';
 import { ChatMemberRole as DatabaseChatMemberRole, MessageType as DatabaseMessageType } from '../../database/interfaces/database.interface';
 import { ServiceManager } from '../../services/service.manager';
 import { GraphQLContext, Chat as ServiceChat, ChatMember as ServiceChatMember, Message as ServiceMessage } from '../../types';
 import { LoggerUtil } from '../../utils/logger.util';
 import { AddMemberInput } from '../inputs/AddMemberInput';
+import { ChatConnectionArgs } from '../inputs/ChatConnectionArgs';
 import { CreateChatInput } from '../inputs/CreateChatInput';
+import { MessageConnectionArgs } from '../inputs/MessageConnectionArgs';
 import { SendMessageInput } from '../inputs/SendMessageInput';
 import { GraphQLAuthGuard } from '../middleware/auth.middleware';
 import { pubSub } from '../server';
@@ -13,6 +15,8 @@ import { Chat } from '../types/Chat';
 import { ChatMember, ChatMemberRole } from '../types/ChatMember';
 import { Message, MessageType } from '../types/Message';
 import { TypingIndicator } from '../types/TypingIndicator';
+import { ChatConnection } from '../types/pagination/ChatConnection';
+import { MessageConnection } from '../types/pagination/MessageConnection';
 
 @Resolver()
 export class ChatResolver {
@@ -21,6 +25,8 @@ export class ChatResolver {
   constructor() {
     this.serviceManager = ServiceManager.getInstance();
   }
+
+  // QUERY RESOLVERS
 
   @Query(() => [Chat])
   @UseMiddleware(GraphQLAuthGuard)
@@ -35,6 +41,37 @@ export class ChatResolver {
       return chats.map(chat => this.mapServiceChatToGraphQL(chat));
     } catch (error) {
       LoggerUtil.error('GraphQL getUserChats failed', error);
+      throw error;
+    }
+  }
+
+  @Query(() => ChatConnection)
+  @UseMiddleware(GraphQLAuthGuard)
+  async userChats(
+    @Args() args: ChatConnectionArgs,
+    @Ctx() context: GraphQLContext
+  ): Promise<ChatConnection> {
+    try {
+      LoggerUtil.debug('GraphQL userChats pagination called', { 
+        userId: context.user?.userId,
+        first: args.first,
+        after: args.after,
+        searchTerm: args.searchTerm,
+        isGroup: args.isGroup
+      });
+
+      const chatService = this.serviceManager.getChatService();
+      const connection = await chatService.getUserChatsConnection(context.user!.userId.toString(), args);
+      
+      LoggerUtil.debug('GraphQL userChats pagination result', { 
+        userId: context.user?.userId, 
+        edgeCount: connection.edges.length,
+        totalCount: connection.totalCount
+      });
+
+      return connection;
+    } catch (error) {
+      LoggerUtil.error('GraphQL userChats pagination failed', error);
       throw error;
     }
   }
@@ -75,6 +112,45 @@ export class ChatResolver {
       return messages.map(msg => this.mapServiceMessageToGraphQL(msg));
     } catch (error) {
       LoggerUtil.error('GraphQL getChatMessages failed', error);
+      throw error;
+    }
+  }
+
+  @Query(() => MessageConnection)
+  @UseMiddleware(GraphQLAuthGuard)
+  async chatMessages(
+    @Args() args: MessageConnectionArgs,
+    @Ctx() context: GraphQLContext
+  ): Promise<MessageConnection> {
+    try {
+      LoggerUtil.debug('GraphQL chatMessages pagination called', { 
+        chatId: args.chatId,
+        userId: context.user?.userId,
+        first: args.first,
+        after: args.after
+      });
+
+      const chatService = this.serviceManager.getChatService();
+      const messageService = this.serviceManager.getMessageService();
+
+      // Check if user is a member of the chat
+      const isMember = await chatService.isUserMemberOfChat(args.chatId, context.user!.userId.toString());
+      if (!isMember) {
+        throw new Error('You are not a member of this chat');
+      }
+
+      const connection = await messageService.getChatMessagesConnection(args);
+      
+      LoggerUtil.debug('GraphQL chatMessages pagination result', { 
+        chatId: args.chatId,
+        userId: context.user?.userId, 
+        edgeCount: connection.edges.length,
+        totalCount: connection.totalCount
+      });
+
+      return connection;
+    } catch (error) {
+      LoggerUtil.error('GraphQL chatMessages pagination failed', error);
       throw error;
     }
   }
@@ -149,7 +225,7 @@ export class ChatResolver {
     }
   }
 
-  // MUTATIONS
+  // MUTATION RESOLVERS
 
   @Mutation(() => Chat)
   @UseMiddleware(GraphQLAuthGuard)
@@ -164,12 +240,11 @@ export class ChatResolver {
       });
 
       const chatService = this.serviceManager.getChatService();
-      const creatorId = context.user!.userId.toString();
+      const userId = context.user!.userId.toString();
 
-      // Use chatService.createChat() following existing service injection pattern
       const chat = await chatService.createChat(
         input.name,
-        creatorId,
+        userId,
         input.memberIds,
         input.isGroup
       );
@@ -264,25 +339,17 @@ export class ChatResolver {
       });
 
       const chatService = this.serviceManager.getChatService();
-      const currentUserId = context.user!.userId.toString();
+      const userId = context.user!.userId.toString();
 
-      // Check if current user is a member of the chat
-      const isMember = await chatService.isUserMemberOfChat(input.chatId, currentUserId);
+      // Check if user is a member of the chat (basic permission check)
+      const isMember = await chatService.isUserMemberOfChat(input.chatId, userId);
       if (!isMember) {
         throw new Error('You are not a member of this chat');
       }
 
-      // Check if current user is an admin (only admins can add members)
-      const chatMembers = await chatService.getChatMembers(input.chatId);
-      const currentUserMembership = chatMembers.find(member => member.userId === currentUserId);
-      if (!currentUserMembership || currentUserMembership.role !== 'admin') {
-        throw new Error('Only chat admins can add new members');
-      }
-
-      // Convert GraphQL ChatMemberRole to database ChatMemberRole enum
+      // Convert GraphQL role to database role enum
       const databaseRole = this.mapGraphQLChatMemberRoleToDatabaseEnum(input.role);
 
-      // Use chatService.addMember() following existing service injection pattern
       const member = await chatService.addMember(
         input.chatId,
         input.userId,
@@ -299,6 +366,55 @@ export class ChatResolver {
       return this.mapServiceChatMemberToGraphQL(member);
     } catch (error) {
       LoggerUtil.error('GraphQL addChatMember failed', error);
+      throw error;
+    }
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(GraphQLAuthGuard)
+  async setTypingStatus(
+    @Arg('chatId') chatId: string,
+    @Arg('isTyping') isTyping: boolean,
+    @Ctx() context: GraphQLContext
+  ): Promise<boolean> {
+    try {
+      LoggerUtil.debug('GraphQL setTypingStatus called', { 
+        chatId, 
+        isTyping, 
+        userId: context.user?.userId 
+      });
+
+      const chatService = this.serviceManager.getChatService();
+      const userId = context.user!.userId.toString();
+
+      // Check if user is a member of the chat
+      const isMember = await chatService.isUserMemberOfChat(chatId, userId);
+      if (!isMember) {
+        throw new Error('You are not a member of this chat');
+      }
+
+      // Trigger typing indicator subscription
+      try {
+        await pubSub.publish(`TYPING_${chatId}`, {
+          typingIndicator: {
+            chatId,
+            userId,
+            isTyping,
+          },
+        });
+        LoggerUtil.debug('Typing indicator subscription triggered', { 
+          chatId, 
+          userId, 
+          isTyping 
+        });
+      } catch (error) {
+        LoggerUtil.error('Failed to trigger typing indicator subscription', error);
+        // Don't fail the mutation if subscription fails
+      }
+      
+      return true;
+    } catch (error) {
+      LoggerUtil.error('GraphQL setTypingStatus failed', error);
       throw error;
     }
   }
@@ -456,68 +572,14 @@ export class ChatResolver {
   })
   typingIndicator(
     @Arg('chatId') chatId: string,
-    @Root() typingPayload: { userTyping: TypingIndicator },
+    @Root() typingPayload: { typingIndicator: TypingIndicator },
     @Ctx() context: GraphQLContext
   ): TypingIndicator {
-    LoggerUtil.debug('GraphQL typingIndicator subscription delivering indicator', { 
+    LoggerUtil.debug('GraphQL typingIndicator subscription delivering status', { 
       chatId, 
-      userId: typingPayload.userTyping.userId,
-      isTyping: typingPayload.userTyping.isTyping
+      userId: typingPayload.typingIndicator.userId,
+      isTyping: typingPayload.typingIndicator.isTyping
     });
-    return typingPayload.userTyping;
-  }
-
-  // TYPING MUTATION
-
-  @Mutation(() => Boolean)
-  @UseMiddleware(GraphQLAuthGuard)
-  async setTypingStatus(
-    @Arg('chatId') chatId: string,
-    @Arg('isTyping') isTyping: boolean,
-    @Ctx() context: GraphQLContext
-  ): Promise<boolean> {
-    try {
-      LoggerUtil.debug('GraphQL setTypingStatus called', { 
-        chatId, 
-        isTyping, 
-        userId: context.user?.userId 
-      });
-
-      const chatService = this.serviceManager.getChatService();
-      const userId = context.user!.userId.toString();
-
-      // Check if user is a member of the chat
-      const isMember = await chatService.isUserMemberOfChat(chatId, userId);
-      if (!isMember) {
-        throw new Error('You are not a member of this chat');
-      }
-
-      // Create typing indicator payload
-      const typingIndicator = new TypingIndicator();
-      typingIndicator.chatId = chatId;
-      typingIndicator.userId = userId;
-      typingIndicator.username = context.user!.username;
-      typingIndicator.isTyping = isTyping;
-
-      // Trigger subscription for typing indicator
-      try {
-        await pubSub.publish(`TYPING_${chatId}`, {
-          userTyping: typingIndicator,
-        });
-        LoggerUtil.debug('Typing indicator subscription triggered', { 
-          chatId, 
-          userId, 
-          isTyping 
-        });
-      } catch (error) {
-        LoggerUtil.error('Failed to trigger typing indicator subscription', error);
-        // Don't fail the mutation if subscription fails
-      }
-
-      return true;
-    } catch (error) {
-      LoggerUtil.error('GraphQL setTypingStatus failed', error);
-      throw error;
-    }
+    return typingPayload.typingIndicator;
   }
 } 

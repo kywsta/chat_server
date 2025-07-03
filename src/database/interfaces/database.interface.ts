@@ -24,12 +24,37 @@ export interface Repository<T, ID = number> {
   count(filter?: Partial<T>): Promise<number>;
 }
 
+export interface ConditionalFilter {
+  key: string;
+  value: any;
+  operator: FilterOperator;
+}
+
+export enum FilterOperator {
+  EQUALS = 'eq',
+  NOT_EQUALS = 'ne',
+  GREATER_THAN = 'gt',
+  GREATER_THAN_OR_EQUAL = 'gte',
+  LESS_THAN = 'lt',
+  LESS_THAN_OR_EQUAL = 'lte',
+  IN = 'in',
+  NOT_IN = 'nin',
+  LIKE = 'like',
+  NOT_LIKE = 'nlike',
+  CONTAINS = 'contains',
+  STARTS_WITH = 'startsWith',
+  ENDS_WITH = 'endsWith',
+  IS_NULL = 'isNull',
+  IS_NOT_NULL = 'isNotNull'
+}
+
 export interface FindOptions {
   limit?: number;
   offset?: number;
   orderBy?: string;
   orderDirection?: 'ASC' | 'DESC';
   filter?: Record<string, any>;
+  conditionalFilters?: ConditionalFilter[];
 }
 
 // User Repository - only user-specific operations
@@ -50,6 +75,31 @@ export interface ChatRepository extends Repository<ChatEntity, string> {
   updateLastMessage(chatId: string, messageId: string): Promise<ChatEntity | null>;
   findGroupChats(): Promise<ChatEntity[]>;
   findDirectChats(): Promise<ChatEntity[]>;
+  
+  // Pagination methods
+  getUserChatsPaginated(
+    userId: string,
+    params: PaginationParams,
+    filters?: { searchTerm?: string; isGroup?: boolean }
+  ): Promise<PaginatedChats>;
+}
+
+// Pagination interfaces
+export interface PaginatedMessages {
+  messages: MessageEntity[];
+  totalCount: number;
+}
+
+export interface PaginatedChats {
+  chats: ChatEntity[];
+  totalCount: number;
+}
+
+export interface PaginationParams {
+  limit: number;
+  afterCursor?: { timestamp: Date; id: string };
+  beforeCursor?: { timestamp: Date; id: string };
+  direction: 'forward' | 'backward';
 }
 
 // Message Repository - only message entity operations
@@ -61,6 +111,9 @@ export interface MessageRepository extends Repository<MessageEntity, string> {
   getMessageCount(chatId: string): Promise<number>;
   getLatestMessage(chatId: string): Promise<MessageEntity | null>;
   findByType(type: MessageType, options?: FindOptions): Promise<MessageEntity[]>;
+  
+  // Pagination methods
+  getChatMessagesPaginated(chatId: string, params: PaginationParams): Promise<PaginatedMessages>;
 }
 
 // ChatMember Repository - only chat member entity operations

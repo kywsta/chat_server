@@ -1,5 +1,6 @@
 import { LoggerUtil } from '../utils/logger.util';
 import { DatabaseConnection, DatabaseHealth, FindOptions, Repository } from './interfaces/database.interface';
+import { FilterUtil } from './utils/filter.util';
 
 export class MemoryDatabase implements DatabaseConnection {
   private connected: boolean = false;
@@ -119,7 +120,6 @@ export class MemoryRepository<T extends { id: number; createdAt: Date; updatedAt
     const collection = this.getCollection();
     collection.set(id, entity);
     
-    LoggerUtil.debug(`Entity created in ${this.collectionName}`, { id });
     return entity;
   }
 
@@ -132,12 +132,19 @@ export class MemoryRepository<T extends { id: number; createdAt: Date; updatedAt
     const collection = this.getCollection();
     let entities = Array.from(collection.values());
 
-    // Apply filter
+    // Apply basic filter (backward compatibility)
     if (options.filter) {
       entities = entities.filter(entity => {
         return Object.entries(options.filter!).every(([key, value]) => {
           return (entity as any)[key] === value;
         });
+      });
+    }
+
+    // Apply conditional filters
+    if (options.conditionalFilters && options.conditionalFilters.length > 0) {
+      entities = entities.filter(entity => {
+        return FilterUtil.applyAllConditionalFilters(entity, options.conditionalFilters!);
       });
     }
 
@@ -175,17 +182,12 @@ export class MemoryRepository<T extends { id: number; createdAt: Date; updatedAt
     } as T;
 
     collection.set(id, updated);
-    LoggerUtil.debug(`Entity updated in ${this.collectionName}`, { id });
     return updated;
   }
 
   async delete(id: number): Promise<boolean> {
     const collection = this.getCollection();
     const deleted = collection.delete(id);
-    
-    if (deleted) {
-      LoggerUtil.debug(`Entity deleted from ${this.collectionName}`, { id });
-    }
     
     return deleted;
   }
@@ -224,8 +226,6 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
 
     const collection = this.getCollection();
     collection.set(id, entity);
-    
-    LoggerUtil.debug(`Entity created in ${this.collectionName}`, { id });
     return entity;
   }
 
@@ -238,12 +238,19 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
     const collection = this.getCollection();
     let entities = Array.from(collection.values());
 
-    // Apply filter
+    // Apply basic filter (backward compatibility)
     if (options.filter) {
       entities = entities.filter(entity => {
         return Object.entries(options.filter!).every(([key, value]) => {
           return (entity as any)[key] === value;
         });
+      });
+    }
+
+    // Apply conditional filters
+    if (options.conditionalFilters && options.conditionalFilters.length > 0) {
+      entities = entities.filter(entity => {
+        return FilterUtil.applyAllConditionalFilters(entity, options.conditionalFilters!);
       });
     }
 
@@ -281,17 +288,12 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
     } as T;
 
     collection.set(id, updated);
-    LoggerUtil.debug(`Entity updated in ${this.collectionName}`, { id });
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
     const collection = this.getCollection();
     const deleted = collection.delete(id);
-    
-    if (deleted) {
-      LoggerUtil.debug(`Entity deleted from ${this.collectionName}`, { id });
-    }
     
     return deleted;
   }
