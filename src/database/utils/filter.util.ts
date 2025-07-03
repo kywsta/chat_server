@@ -91,13 +91,20 @@ export class FilterUtil {
   }
 
   /**
-   * Case-insensitive contains comparison
+   * Case-insensitive contains comparison for strings and array membership check
    */
-  private static containsComparison(entityValue: any, searchValue: string): boolean {
-    if (typeof entityValue !== 'string') {
-      return false;
+  private static containsComparison(entityValue: any, searchValue: any): boolean {
+    // Handle array membership check
+    if (Array.isArray(entityValue)) {
+      return entityValue.includes(searchValue);
     }
-    return entityValue.toLowerCase().includes(searchValue.toLowerCase());
+    
+    // Handle string contains check
+    if (typeof entityValue === 'string' && typeof searchValue === 'string') {
+      return entityValue.toLowerCase().includes(searchValue.toLowerCase());
+    }
+    
+    return false;
   }
 
   /**

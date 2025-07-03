@@ -132,19 +132,11 @@ export class ChatResolver {
         after: args.after,
       });
 
-      const chatService = this.serviceManager.getChatService();
       const messageService = this.serviceManager.getMessageService();
+      const userId = context.user!.userId.toString();
 
-      // Check if user is a member of the chat
-      const isMember = await chatService.isUserMemberOfChat(
-        args.chatId,
-        context.user!.userId.toString()
-      );
-      if (!isMember) {
-        throw new Error("You are not a member of this chat");
-      }
-
-      const connection = await messageService.getChatMessages(args);
+      // Access control is now handled in the service layer
+      const connection = await messageService.getChatMessages(args, userId);
 
       LoggerUtil.debug("GraphQL chatMessages pagination result", {
         chatId: args.chatId,
@@ -249,25 +241,15 @@ export class ChatResolver {
         userId: context.user?.userId,
       });
 
-      const chatService = this.serviceManager.getChatService();
       const messageService = this.serviceManager.getMessageService();
       const userId = context.user!.userId.toString();
-
-      // Check if user is a member of the chat
-      const isMember = await chatService.isUserMemberOfChat(
-        input.chatId,
-        userId
-      );
-      if (!isMember) {
-        throw new Error("You are not a member of this chat");
-      }
 
       // Convert GraphQL MessageType to database MessageType enum
       const databaseMessageType = this.mapGraphQLMessageTypeToDatabaseEnum(
         input.type
       );
 
-      // Use messageService.sendMessage() following existing service injection pattern
+      // Access control is now handled in the service layer
       const message = await messageService.sendMessage(
         input.chatId,
         userId,

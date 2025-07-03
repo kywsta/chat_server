@@ -75,6 +75,9 @@ export interface ChatRepository extends Repository<ChatEntity, string> {
   updateLastMessage(chatId: string, messageId: string): Promise<ChatEntity | null>;
   findGroupChats(): Promise<ChatEntity[]>;
   findDirectChats(): Promise<ChatEntity[]>;
+  addMemberToChat(chatId: string, userId: string): Promise<ChatEntity | null>;
+  removeMemberFromChat(chatId: string, userId: string): Promise<ChatEntity | null>;
+  findByMemberId(userId: string): Promise<ChatEntity[]>;
   
   // Pagination methods
   getUserChatsPaginated(
@@ -139,6 +142,7 @@ export interface ChatEntity {
   id: string;
   name: string;
   creatorId: string;
+  memberIds: string[];
   isGroup: boolean;
   lastMessageId?: string;
   createdAt: Date;

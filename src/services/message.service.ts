@@ -28,6 +28,16 @@ export class MessageService {
     try {
       LoggerUtil.debug('Sending message', { chatId, userId, content: content.substring(0, 50), type });
 
+      // Business logic: Validate user access to chat
+      const chat = await this.chatRepository.findById(chatId);
+      if (!chat) {
+        throw new Error('Chat not found');
+      }
+
+      if (!chat.memberIds.includes(userId)) {
+        throw new Error('User is not a member of this chat');
+      }
+
       // Business logic: Validate message content
       if (!content || content.trim().length === 0) {
         throw new Error('Message content cannot be empty');
@@ -74,9 +84,19 @@ export class MessageService {
     }
   }
 
-  async getChatMessages(args: MessageConnectionArgs) {
+  async getChatMessages(args: MessageConnectionArgs, userId: string) {
     try {
       LoggerUtil.debug('Getting chat messages with pagination', { chatId: args.chatId, first: args.first, after: args.after });
+
+      // Business logic: Validate user access to chat
+      const chat = await this.chatRepository.findById(args.chatId);
+      if (!chat) {
+        throw new Error('Chat not found');
+      }
+
+      if (!chat.memberIds.includes(userId)) {
+        throw new Error('User is not a member of this chat');
+      }
 
       const paginationParams = PaginationUtil.parsePaginationArgs(args);
       const result = await this.messageRepository.getChatMessagesPaginated(

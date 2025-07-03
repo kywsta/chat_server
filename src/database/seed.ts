@@ -132,6 +132,7 @@ export class DatabaseSeeder {
       const chatCreateData = {
         name: chatData.name,
         creatorId: chatData.creatorId,
+        memberIds: chatData.memberIds,
         isGroup: chatData.isGroup,
       };
 
@@ -172,6 +173,7 @@ export class DatabaseSeeder {
       const chatCreateData = {
         name: `${user1.username} & ${user2.username}`,
         creatorId: user1.id.toString(),
+        memberIds: [user1.id.toString(), user2.id.toString()],
         isGroup: false,
       };
 
