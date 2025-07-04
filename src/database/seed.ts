@@ -201,7 +201,83 @@ export class DatabaseSeeder {
 
   private async seedMessages(database: MemoryDatabase): Promise<void> {
     LoggerUtil.info('Seeding messages...');
+
+    // Alice & Bob direct messages (53 total)
+    const aliceBobMessages: string[] = [
+      'Hey Alice! How are you doing?',
+      'Hi Bob! I\'m doing great, thanks for asking!',
+      'That\'s awesome! What have you been up to lately?',
+      'Just working on some new projects. How about you?',
+      'Same here! I\'ve been learning some new technologies.',
+      'That sounds interesting! What kind of technologies?',
+      'Mostly GraphQL and real-time messaging stuff.',
+      'Oh cool! I\'ve been working with Flutter recently.',
+      'Flutter is amazing! Are you building mobile apps?',
+      'Yes, I\'m working on a chat application actually.',
+      'That\'s a coincidence! I\'m working on the backend for a chat app.',
+      'Really? Maybe we should collaborate sometime!',
+      'That would be great! I\'d love to see what you\'re building.',
+      'I\'ll show you next time we meet.',
+      'Sounds like a plan!',
+      'By the way, have you tried the new restaurant downtown?',
+      'No, I haven\'t. Is it good?',
+      'It\'s fantastic! They have amazing pasta.',
+      'I love pasta! We should go there together.',
+      'Definitely! How about this weekend?',
+      'This weekend sounds perfect!',
+      'Great! I\'ll make a reservation.',
+      'Thanks! I\'m looking forward to it.',
+      'Me too! It\'ll be fun to catch up.',
+      'Absolutely! See you this weekend then.',
+      'See you then!',
+      'Oh, and don\'t forget to bring your appetite!',
+      'Haha, I won\'t! I\'m always hungry.',
+      'Perfect! This is going to be great.',
+      'I couldn\'t agree more!',
+      'Hey, did you see the latest movie that came out?',
+      'Which one are you talking about?',
+      'The new sci-fi thriller everyone\'s talking about.',
+      'Oh yes! I\'ve been wanting to watch it.',
+      'We should go see it after dinner!',
+      'That\'s a great idea! A perfect evening.',
+      'Exactly! Dinner and a movie.',
+      'I can\'t wait! This weekend is going to be amazing.',
+      'It really is! Thanks for planning this.',
+      'My pleasure! Thanks for being such a great friend.',
+      'Aww, you\'re the best Bob!',
+      'You\'re pretty awesome yourself, Alice!',
+      'This conversation is making me smile.',
+      'Same here! I\'m really glad we reconnected.',
+      'Me too! We should do this more often.',
+      'Absolutely! Regular catch-ups are the best.',
+      'I agree! Friends are so important.',
+      'They really are. I\'m lucky to have you as a friend.',
+      'The feeling is mutual!',
+      'Alright, I should probably get back to work.',
+      'Same here! But this was really nice.',
+      'It was! Talk to you soon!',
+      'Talk to you soon, Alice!',
+    ];
+
+    const today = new Date();
+    const chat1StartTime = new Date(today.setDate(today.getDate() - 5));
+    const chat2StartTime = new Date(today.setDate(today.getDate() - 4));
+    const chat3StartTime = new Date(today.setDate(today.getDate() - 3));
+    const chat4StartTime = new Date(today.setDate(today.getDate() - 2));
+    const chat5StartTime = new Date(today.setDate(today.getDate() - 1));
     
+    // Deterministic random for reproducibility
+    function seededRandom(seed: number) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function increaseTime(date: Date) {
+      const rand = seededRandom(date.getTime());
+      const interval = Math.floor(rand * 25) + 1; // 1-25 minutes
+      return new Date(date.getTime() + interval * 60 * 1000);
+    }
+
     const messages = [
       // General Discussion chat messages
       {
@@ -210,7 +286,7 @@ export class DatabaseSeeder {
         userId: '1',
         content: 'Hello everyone! Welcome to our general discussion chat.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T12:05:00Z'),
+        createdAt: increaseTime(chat1StartTime),
       },
       {
         id: 'msg_2',
@@ -218,7 +294,7 @@ export class DatabaseSeeder {
         userId: '2',
         content: 'Hi Alice! Great to be here.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T12:10:00Z'),
+        createdAt: increaseTime(chat1StartTime),
       },
       {
         id: 'msg_3',
@@ -226,7 +302,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Hello team! Looking forward to our collaboration.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T12:15:00Z'),
+        createdAt: increaseTime(chat1StartTime),
       },
       {
         id: 'msg_4',
@@ -234,7 +310,7 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'Hi everyone! 👋',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T12:20:00Z'),
+        createdAt: increaseTime(chat1StartTime),
       },
       {
         id: 'msg_5',
@@ -242,7 +318,7 @@ export class DatabaseSeeder {
         userId: '5',
         content: 'Good morning all! Ready to get started on our projects.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T15:30:00Z'),
+        createdAt: increaseTime(chat1StartTime),
       },
 
       // Project Alpha chat messages
@@ -252,7 +328,7 @@ export class DatabaseSeeder {
         userId: '2',
         content: 'Welcome to Project Alpha team!',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T13:05:00Z'),
+        createdAt: increaseTime(chat2StartTime),
       },
       {
         id: 'msg_7',
@@ -260,7 +336,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Thanks Bob! What are our first steps?',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T13:10:00Z'),
+        createdAt: increaseTime(chat2StartTime),
       },
       {
         id: 'msg_8',
@@ -268,7 +344,7 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'I can help with the design phase.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T13:15:00Z'),
+        createdAt: increaseTime(chat2StartTime),
       },
       {
         id: 'msg_9',
@@ -276,7 +352,7 @@ export class DatabaseSeeder {
         userId: '2',
         content: 'Perfect! Let me share the project requirements.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T13:20:00Z'),
+        createdAt: increaseTime(chat2StartTime),
       },
       {
         id: 'msg_10',
@@ -284,50 +360,18 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Received the requirements. They look comprehensive!',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T16:15:00Z'),
+        createdAt: increaseTime(chat2StartTime),
       },
 
-      // Alice & Bob direct messages
-      {
-        id: 'msg_11',
+      
+      ...Array.from({ length: aliceBobMessages.length }, (_, i) => ({
+        id: `msg_${i + 11}`,
         chatId: 'chat_3',
-        userId: '1',
-        content: 'Hey Bob, can we discuss the project timeline?',
+        userId: (i % 2 === 0) ? '1' : '2', // Alice: even, Bob: odd
+        content: aliceBobMessages[i],
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T14:05:00Z'),
-      },
-      {
-        id: 'msg_12',
-        chatId: 'chat_3',
-        userId: '2',
-        content: 'Sure Alice! I think we can complete it in 3 weeks.',
-        type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T14:10:00Z'),
-      },
-      {
-        id: 'msg_13',
-        chatId: 'chat_3',
-        userId: '1',
-        content: 'That sounds reasonable. What about the resource allocation?',
-        type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T14:15:00Z'),
-      },
-      {
-        id: 'msg_14',
-        chatId: 'chat_3',
-        userId: '2',
-        content: 'I think we need 2 developers and 1 designer.',
-        type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T14:20:00Z'),
-      },
-      {
-        id: 'msg_15',
-        chatId: 'chat_3',
-        userId: '1',
-        content: 'Agreed! Let me coordinate with the team.',
-        type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T17:00:00Z'),
-      },
+        createdAt: increaseTime(chat3StartTime),
+      })),
 
       // Team Leaders chat messages
       {
@@ -336,7 +380,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Team leaders meeting starts now.',
         type: MessageType.SYSTEM,
-        createdAt: new Date('2024-01-01T15:05:00Z'),
+        createdAt: increaseTime(chat4StartTime),
       },
       {
         id: 'msg_17',
@@ -344,7 +388,7 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'Present! Ready to discuss quarterly goals.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T15:10:00Z'),
+        createdAt: increaseTime(chat4StartTime),
       },
       {
         id: 'msg_18',
@@ -352,7 +396,7 @@ export class DatabaseSeeder {
         userId: '5',
         content: 'Here as well. I have some updates on the client feedback.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T15:15:00Z'),
+        createdAt: increaseTime(chat4StartTime),
       },
       {
         id: 'msg_19',
@@ -360,7 +404,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Great! Let\'s start with Diana\'s updates.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T15:20:00Z'),
+        createdAt: increaseTime(chat4StartTime),
       },
       {
         id: 'msg_20',
@@ -368,8 +412,10 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'The client is very satisfied with our progress so far.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T18:00:00Z'),
+        createdAt: increaseTime(chat4StartTime),
       },
+      
+
 
       // Charlie & Diana direct messages
       {
@@ -378,7 +424,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Hi Diana, how\'s the design review going?',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T16:05:00Z'),
+        createdAt: increaseTime(chat5StartTime),
       },
       {
         id: 'msg_22',
@@ -386,7 +432,7 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'Going well! I should have the final version ready by tomorrow.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T16:10:00Z'),
+        createdAt: increaseTime(chat5StartTime),
       },
       {
         id: 'msg_23',
@@ -394,7 +440,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Perfect! The developers are waiting for it.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T16:15:00Z'),
+        createdAt: increaseTime(chat5StartTime),
       },
       {
         id: 'msg_24',
@@ -402,7 +448,7 @@ export class DatabaseSeeder {
         userId: '4',
         content: 'I\'ll send it directly to them once it\'s ready.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T16:20:00Z'),
+        createdAt: increaseTime(chat5StartTime),
       },
       {
         id: 'msg_25',
@@ -410,7 +456,7 @@ export class DatabaseSeeder {
         userId: '3',
         content: 'Thanks Diana! You\'re the best.',
         type: MessageType.TEXT,
-        createdAt: new Date('2024-01-01T19:00:00Z'),
+        createdAt: increaseTime(chat5StartTime),
       },
     ];
 
