@@ -1,18 +1,19 @@
-import { MessageEntity, MessageType } from '../database/interfaces/database.interface';
-import { MemoryChatRepository } from '../database/repositories/chat.repository';
-import { MemoryMessageRepository } from '../database/repositories/message.repository';
+import { MessageEntity, MessageType } from '../domain/entities';
+import { MemoryChatRepository } from '../data/repositories/MemoryChatRepository';
+import { MemoryMessageRepository } from '../data/repositories/MemoryMessageRepository';
 import { MessageConnectionArgs } from '../graphql/inputs/MessageConnectionArgs';
 import { Message } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
 import { PaginationUtil } from '../utils/pagination.util';
+import { IChatRepository, IMessageRepository } from '../domain/repositories';
 
 export class MessageService {
-  private messageRepository: MemoryMessageRepository;
-  private chatRepository: MemoryChatRepository;
+  private messageRepository: IMessageRepository;
+  private chatRepository: IChatRepository;
 
   constructor(
-    messageRepository: MemoryMessageRepository,
-    chatRepository: MemoryChatRepository
+    messageRepository: IMessageRepository,
+    chatRepository: IChatRepository
   ) {
     this.messageRepository = messageRepository;
     this.chatRepository = chatRepository;

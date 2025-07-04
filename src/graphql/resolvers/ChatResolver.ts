@@ -1,25 +1,25 @@
 import "reflect-metadata";
 import {
-  Arg,
-  Args,
-  Ctx,
-  Mutation,
-  Query,
-  Resolver,
-  Root,
-  Subscription,
-  UseMiddleware,
+    Arg,
+    Args,
+    Ctx,
+    Mutation,
+    Query,
+    Resolver,
+    Root,
+    Subscription,
+    UseMiddleware,
 } from "type-graphql";
 import {
-  ChatMemberRole as DatabaseChatMemberRole,
-  MessageType as DatabaseMessageType,
-} from "../../database/interfaces/database.interface";
+    ChatMemberRole as DatabaseChatMemberRole,
+    MessageType as DatabaseMessageType,
+} from "../../domain/entities";
 import { ServiceManager } from "../../services/service.manager";
 import {
-  GraphQLContext,
-  Chat as ServiceChat,
-  ChatMember as ServiceChatMember,
-  Message as ServiceMessage,
+    GraphQLContext,
+    Chat as ServiceChat,
+    ChatMember as ServiceChatMember,
+    Message as ServiceMessage,
 } from "../../types";
 import { LoggerUtil } from "../../utils/logger.util";
 import { AddMemberInput } from "../inputs/AddMemberInput";

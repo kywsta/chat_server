@@ -20,20 +20,13 @@ export class UserController {
 
   static async getUserById(req: Request, res: Response): Promise<void> {
     try {
-      const userIdParam = req.params.id;
+      const userId = req.params.id;
       
-      if (!userIdParam) {
+      if (!userId) {
         res.status(400).json({ error: 'User ID parameter is required' });
         return;
       }
-      
-      const userId = parseInt(userIdParam);
-      
-      if (isNaN(userId)) {
-        res.status(400).json({ error: 'Invalid user ID' });
-        return;
-      }
-
+    
       const user = await UserController.getUserService().getUserById(userId);
       
       if (!user) {

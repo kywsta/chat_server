@@ -1,61 +1,60 @@
+import { DataEntity } from '../../domain/entities/data-entity';
+import { FindOptions, Repository } from '../../domain/repositories';
 import { LoggerUtil } from '../../utils/logger.util';
-import { DatabaseConnection, DatabaseHealth, FindOptions, Repository } from '../interfaces/database.interface';
-import { FilterUtil } from './filter.util';
+import { DatabaseConnection, DatabaseHealth } from '../interfaces/database.interface';
 
 export class MemoryDatabase implements DatabaseConnection {
-  private connected: boolean = false;
   private collections: Map<string, Map<number, any>> = new Map();
   private stringCollections: Map<string, Map<string, any>> = new Map();
-  private sequences: Map<string, number> = new Map();
-  private connectionTime: number = Date.now();
+  private isConnectedFlag: boolean = false;
+  private startTime: Date = new Date();
 
   async connect(): Promise<void> {
-    try {
-      this.connected = true;
-      LoggerUtil.info('Memory database connected successfully');
-    } catch (error) {
-      LoggerUtil.error('Failed to connect to memory database', error);
-      throw error;
-    }
+    LoggerUtil.info('Connecting to memory database...');
+    this.isConnectedFlag = true;
+    LoggerUtil.info('Memory database connected successfully');
   }
 
   async disconnect(): Promise<void> {
-    try {
-      this.connected = false;
-      this.collections.clear();
-      this.stringCollections.clear();
-      this.sequences.clear();
-      LoggerUtil.info('Memory database disconnected successfully');
-    } catch (error) {
-      LoggerUtil.error('Failed to disconnect from memory database', error);
-      throw error;
-    }
+    LoggerUtil.info('Disconnecting from memory database...');
+    this.isConnectedFlag = false;
+    this.collections.clear();
+    this.stringCollections.clear();
+    LoggerUtil.info('Memory database disconnected successfully');
   }
 
   isConnected(): boolean {
-    return this.connected;
+    return this.isConnectedFlag;
   }
 
   async getHealth(): Promise<DatabaseHealth> {
-    const collections = this.collections.size + this.stringCollections.size;
-    const totalRecords = Array.from(this.collections.values()).reduce((sum, map) => sum + map.size, 0) +
-                        Array.from(this.stringCollections.values()).reduce((sum, map) => sum + map.size, 0);
+    const totalCollections = this.collections.size + this.stringCollections.size;
+    let totalRecords = 0;
     
+    // Count records in number-keyed collections
+    for (const collection of this.collections.values()) {
+      totalRecords += collection.size;
+    }
+    
+    // Count records in string-keyed collections
+    for (const collection of this.stringCollections.values()) {
+      totalRecords += collection.size;
+    }
+
+    const uptime = Date.now() - this.startTime.getTime();
+
     return {
-      isHealthy: this.connected,
+      isHealthy: this.isConnectedFlag,
       timestamp: new Date(),
       details: {
-        collections,
+        collections: totalCollections,
         totalRecords,
-        uptime: this.connected ? Date.now() - this.connectionTime : 0
+        uptime: Math.floor(uptime / 1000), // in seconds
       }
     };
   }
 
-  async healthCheck(): Promise<{
-    isHealthy: boolean;
-    details?: any;
-  }> {
+  async healthCheck(): Promise<{ isHealthy: boolean; details?: any }> {
     const health = await this.getHealth();
     return {
       isHealthy: health.isHealthy,
@@ -63,161 +62,56 @@ export class MemoryDatabase implements DatabaseConnection {
     };
   }
 
-  // Basic collection access methods
-  getCollection<T>(name: string): Map<number, T> {
-    if (!this.collections.has(name)) {
-      this.collections.set(name, new Map());
-      // Only initialize sequence if it doesn't already exist
-      if (!this.sequences.has(name)) {
-        this.sequences.set(name, 0);
-      }
-    }
-    return this.collections.get(name)!;
-  }
-
-  getStringCollection<T>(name: string): Map<string, T> {
+  getCollection<T>(name: string): Map<string, T> {
     if (!this.stringCollections.has(name)) {
-      this.stringCollections.set(name, new Map());
+      this.stringCollections.set(name, new Map<string, T>());
     }
     return this.stringCollections.get(name)!;
   }
 
-  getNextId(collectionName: string): number {
-    const currentId = this.sequences.get(collectionName) || 0;
-    const nextId = currentId + 1;
-    this.sequences.set(collectionName, nextId);
-    return nextId;
-  }
+  // Statistics methods
+  getStats() {
+    const stats: any = {
+      collections: {},
+      totalRecords: 0
+    };
 
-  // Factory method for creating repositories
-  createRepository<T extends { id: number; createdAt: Date; updatedAt: Date }>(collectionName: string): Repository<T> {
-    return new MemoryRepository<T>(this, collectionName);
+    // Count records in number-keyed collections
+    for (const [name, collection] of this.collections.entries()) {
+      stats.collections[name] = collection.size;
+      stats.totalRecords += collection.size;
+    }
+
+    // Count records in string-keyed collections
+    for (const [name, collection] of this.stringCollections.entries()) {
+      stats.collections[name] = collection.size;
+      stats.totalRecords += collection.size;
+    }
+
+    return stats;
   }
 }
 
-// Generic repository implementation for numeric IDs
-export class MemoryRepository<T extends { id: number; createdAt: Date; updatedAt: Date }> implements Repository<T> {
+// Base repository implementation for entities with string IDs
+export class MemoryRepository<T extends DataEntity> implements Repository<T> {
   constructor(
-    private database: MemoryDatabase,
-    private collectionName: string
+    protected database: MemoryDatabase,
+    protected collectionName: string
   ) {}
 
-  private getCollection(): Map<number, T> {
+  protected getCollection(): Map<string, T> {
     return this.database.getCollection<T>(this.collectionName);
   }
 
-  async create(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const now = new Date();
-    const id = this.database.getNextId(this.collectionName);
-    
-    const entity = {
-      id,
-      ...data,
-      createdAt: now,
-      updatedAt: now,
-    } as T;
-
-    const collection = this.getCollection();
-    collection.set(id, entity);
-    
-    return entity;
-  }
-
-  async findById(id: number): Promise<T | null> {
-    const collection = this.getCollection();
-    return collection.get(id) || null;
-  }
-
-  async findAll(options: FindOptions = {}): Promise<T[]> {
-    const collection = this.getCollection();
-    let entities = Array.from(collection.values());
-
-    // Apply basic filter (backward compatibility)
-    if (options.filter) {
-      entities = entities.filter(entity => {
-        return Object.entries(options.filter!).every(([key, value]) => {
-          return (entity as any)[key] === value;
-        });
-      });
-    }
-
-    // Apply conditional filters
-    if (options.conditionalFilters && options.conditionalFilters.length > 0) {
-      entities = entities.filter(entity => {
-        return FilterUtil.applyAllConditionalFilters(entity, options.conditionalFilters!);
-      });
-    }
-
-    // Apply sorting
-    if (options.orderBy) {
-      entities.sort((a, b) => {
-        const aValue = (a as any)[options.orderBy!];
-        const bValue = (b as any)[options.orderBy!];
-        
-        if (aValue < bValue) return options.orderDirection === 'DESC' ? 1 : -1;
-        if (aValue > bValue) return options.orderDirection === 'DESC' ? -1 : 1;
-        return 0;
-      });
-    }
-
-    // Apply pagination
-    const start = options.offset || 0;
-    const end = options.limit ? start + options.limit : entities.length;
-    
-    return entities.slice(start, end);
-  }
-
-  async update(id: number, data: Partial<T>): Promise<T | null> {
-    const collection = this.getCollection();
-    const existing = collection.get(id);
-    
-    if (!existing) {
-      return null;
-    }
-
-    const updated = {
-      ...existing,
-      ...data,
-      updatedAt: new Date(),
-    } as T;
-
-    collection.set(id, updated);
-    return updated;
-  }
-
-  async delete(id: number): Promise<boolean> {
-    const collection = this.getCollection();
-    const deleted = collection.delete(id);
-    
-    return deleted;
-  }
-
-  async count(filter?: Partial<T>): Promise<number> {
-    const entities = await this.findAll(filter ? { filter } : {});
-    return entities.length;
-  }
-}
-
-// String-based repository for entities with string IDs
-export class MemoryStringRepository<T extends { id: string; createdAt: Date; updatedAt?: Date }> {
-  constructor(
-    private database: MemoryDatabase,
-    private collectionName: string
-  ) {}
-
-  private getCollection(): Map<string, T> {
-    return this.database.getStringCollection<T>(this.collectionName);
-  }
-
-  generateId(): string {
+  protected generateId(): string {
     return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   }
 
   async create(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T> {
-    const now = new Date();
     const id = this.generateId();
+    const now = new Date();
     
-    const entity = {
+    const entity: T = {
       id,
       ...data,
       createdAt: now,
@@ -226,6 +120,7 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
 
     const collection = this.getCollection();
     collection.set(id, entity);
+    
     return entity;
   }
 
@@ -234,12 +129,12 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
     return collection.get(id) || null;
   }
 
-  async findAll(options: FindOptions = {}): Promise<T[]> {
+  async findAll(options?: FindOptions): Promise<T[]> {
     const collection = this.getCollection();
     let entities = Array.from(collection.values());
 
-    // Apply basic filter (backward compatibility)
-    if (options.filter) {
+    // Apply filter
+    if (options?.filter) {
       entities = entities.filter(entity => {
         return Object.entries(options.filter!).every(([key, value]) => {
           return (entity as any)[key] === value;
@@ -248,14 +143,54 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
     }
 
     // Apply conditional filters
-    if (options.conditionalFilters && options.conditionalFilters.length > 0) {
+    if (options?.conditionalFilters) {
       entities = entities.filter(entity => {
-        return FilterUtil.applyAllConditionalFilters(entity, options.conditionalFilters!);
+        return options.conditionalFilters!.every(filter => {
+          const entityValue = (entity as any)[filter.key];
+          
+          switch (filter.operator) {
+            case 'eq':
+              return entityValue === filter.value;
+            case 'ne':
+              return entityValue !== filter.value;
+            case 'gt':
+              return entityValue > filter.value;
+            case 'gte':
+              return entityValue >= filter.value;
+            case 'lt':
+              return entityValue < filter.value;
+            case 'lte':
+              return entityValue <= filter.value;
+            case 'in':
+              return Array.isArray(filter.value) && filter.value.includes(entityValue);
+            case 'nin':
+              return Array.isArray(filter.value) && !filter.value.includes(entityValue);
+            case 'like':
+              return typeof entityValue === 'string' && entityValue.includes(filter.value);
+            case 'nlike':
+              return typeof entityValue === 'string' && !entityValue.includes(filter.value);
+            case 'contains':
+              if (Array.isArray(entityValue)) {
+                return entityValue.includes(filter.value);
+              }
+              return typeof entityValue === 'string' && entityValue.includes(filter.value);
+            case 'startsWith':
+              return typeof entityValue === 'string' && entityValue.startsWith(filter.value);
+            case 'endsWith':
+              return typeof entityValue === 'string' && entityValue.endsWith(filter.value);
+            case 'isNull':
+              return entityValue == null;
+            case 'isNotNull':
+              return entityValue != null;
+            default:
+              return true;
+          }
+        });
       });
     }
 
     // Apply sorting
-    if (options.orderBy) {
+    if (options?.orderBy) {
       entities.sort((a, b) => {
         const aValue = (a as any)[options.orderBy!];
         const bValue = (b as any)[options.orderBy!];
@@ -267,10 +202,13 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
     }
 
     // Apply pagination
-    const start = options.offset || 0;
-    const end = options.limit ? start + options.limit : entities.length;
-    
-    return entities.slice(start, end);
+    if (options?.offset || options?.limit) {
+      const start = options.offset || 0;
+      const end = options.limit ? start + options.limit : undefined;
+      entities = entities.slice(start, end);
+    }
+
+    return entities;
   }
 
   async update(id: string, data: Partial<T>): Promise<T | null> {
@@ -299,7 +237,7 @@ export class MemoryStringRepository<T extends { id: string; createdAt: Date; upd
   }
 
   async count(filter?: Partial<T>): Promise<number> {
-    const entities = await this.findAll(filter ? { filter } : {});
+    const entities = await this.findAll(filter ? { filter } : undefined);
     return entities.length;
   }
 } 

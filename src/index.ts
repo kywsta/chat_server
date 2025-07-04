@@ -27,7 +27,7 @@ app.get('/health', async (req, res) => {
     res.json({
       status: 'ok',
       timestamp: new Date(),
-      environment: appConfig.env,
+      environment: appConfig.environment,
       database: dbHealth
     });
   } catch (error) {
@@ -35,7 +35,7 @@ app.get('/health', async (req, res) => {
     res.status(500).json({
       status: 'error',
       timestamp: new Date(),
-      environment: appConfig.env,
+      environment: appConfig.environment,
       database: { status: 'unhealthy', connection: false }
     });
   }
@@ -73,7 +73,7 @@ async function initializeApp(): Promise<void> {
   try {
     // Initialize database
     const databaseManager = DatabaseManager.getInstance();
-    await databaseManager.initialize(appConfig.database.type, appConfig.database);
+    await databaseManager.initialize('memory');
     
     // Initialize services
     const serviceManager = ServiceManager.getInstance();
@@ -129,7 +129,7 @@ async function startServer(): Promise<void> {
     
     graphqlSetup.httpServer.listen(appConfig.port, () => {
       LoggerUtil.info(`Chat server running on port ${appConfig.port}`);
-      LoggerUtil.info(`Environment: ${appConfig.env}`);
+      LoggerUtil.info(`Environment: ${appConfig.environment}`);
       LoggerUtil.info(`Database type: ${appConfig.database.type}`);
       LoggerUtil.info(`Health check: http://localhost:${appConfig.port}/health`);
       LoggerUtil.info(`GraphQL endpoint: http://localhost:${appConfig.port}/graphql`);

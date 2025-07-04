@@ -7,7 +7,7 @@ export class JWTUtil {
   static generateToken(payload: JWTPayload): string {
     try {
       const token = jwt.sign(payload, appConfig.jwtSecret, {
-        expiresIn: appConfig.jwtExpiresIn
+        expiresIn: '24h' // Default to 24 hours
       });
       LoggerUtil.debug('JWT token generated successfully', { userId: payload.userId });
       return token;

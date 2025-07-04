@@ -1,4 +1,4 @@
-import { ConditionalFilter, FilterOperator, FindOptions } from '../interfaces/database.interface';
+import { ConditionalFilter, FilterOperator, FindOptions } from '../../domain/repositories';
 
 export class QueryBuilder {
   private filters: ConditionalFilter[] = [];

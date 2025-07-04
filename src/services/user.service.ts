@@ -1,11 +1,19 @@
 import bcrypt from 'bcryptjs';
 import { appConfig } from '../config/app.config';
-import { FindOptions, UserEntity, UserRepository } from '../database/interfaces/database.interface';
+import { DatabaseManager } from '../database/database.manager';
+import { MemoryDatabase } from '../database/memory_database/memory.database';
+import { FindOptions, IUserRepository, UserEntity } from '../domain';
+import { MemoryUserRepository } from '../data/repositories/MemoryUserRepository';
 import { LoginRequest, RegisterRequest, UserResponse } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
 
 export class UserService {
-  constructor(private userRepository: UserRepository) {}
+  private userRepository: IUserRepository;
+
+  constructor(databaseManager: DatabaseManager) {
+    const database = databaseManager.getDatabase() as MemoryDatabase;
+    this.userRepository = new MemoryUserRepository(database);
+  }
 
   async createUser(userData: RegisterRequest): Promise<UserResponse> {
     try {
@@ -101,7 +109,7 @@ export class UserService {
     }
   }
 
-  async getUserById(id: number): Promise<UserResponse | null> {
+  async getUserById(id: string): Promise<UserResponse | null> {
     try {
       const user = await this.userRepository.findById(id);
       if (!user) {
@@ -152,7 +160,7 @@ export class UserService {
     }
   }
 
-  async updateUserPassword(userId: number, newPassword: string): Promise<void> {
+  async updateUserPassword(userId: string, newPassword: string): Promise<void> {
     try {
       if (!newPassword) {
         throw new Error('New password is required');
@@ -171,7 +179,7 @@ export class UserService {
     }
   }
 
-  async deactivateUser(userId: number): Promise<void> {
+  async deactivateUser(userId: string): Promise<void> {
     try {
       await this.userRepository.deactivateUser(userId);
       LoggerUtil.info('User deactivated successfully', { userId });
@@ -181,7 +189,7 @@ export class UserService {
     }
   }
 
-  async activateUser(userId: number): Promise<void> {
+  async activateUser(userId: string): Promise<void> {
     try {
       await this.userRepository.activateUser(userId);
       LoggerUtil.info('User activated successfully', { userId });
@@ -193,7 +201,9 @@ export class UserService {
 
   async getUserCount(): Promise<number> {
     try {
-      return await this.userRepository.count();
+      const count = await this.userRepository.count();
+      LoggerUtil.debug('Retrieved user count', { count });
+      return count;
     } catch (error) {
       LoggerUtil.error('Failed to get user count', error);
       throw error;
@@ -207,5 +217,38 @@ export class UserService {
       LoggerUtil.error('Failed to check if user exists', error);
       throw error;
     }
+  }
+
+  async findById(id: string): Promise<UserEntity | null> {
+    return await this.userRepository.findById(id);
+  }
+
+  async findByUsername(username: string): Promise<UserEntity | null> {
+    return await this.userRepository.findByUsername(username);
+  }
+
+  async findByEmail(email: string): Promise<UserEntity | null> {
+    return await this.userRepository.findByEmail(email);
+  }
+
+  async existsByUsername(username: string): Promise<boolean> {
+    return await this.userRepository.existsByUsername(username);
+  }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<UserEntity | null> {
+    LoggerUtil.info('Updating user password', { userId });
+    return await this.userRepository.updatePassword(userId, hashedPassword);
+  }
+
+  async getActiveUsers(options?: FindOptions): Promise<UserEntity[]> {
+    return await this.userRepository.getActiveUsers(options);
+  }
+
+  async getUserStats(): Promise<{ totalUsers: number; activeUsers: number }> {
+    const totalUsers = await this.userRepository.count();
+    const activeUsers = await this.userRepository.count({ isActive: true });
+    
+    LoggerUtil.debug('Retrieved user stats', { totalUsers, activeUsers });
+    return { totalUsers, activeUsers };
   }
 } 

@@ -1,12 +1,12 @@
 export interface User {
-  id: number;
+  id: string;
   username: string;
   password: string;
   createdAt: Date;
 }
 
 export interface UserResponse {
-  id: number;
+  id: string;
   username: string;
   email?: string;
 }
@@ -29,7 +29,7 @@ export interface AuthResponse {
 }
 
 export interface JWTPayload {
-  userId: number;
+  userId: string;
   username: string;
 }
 

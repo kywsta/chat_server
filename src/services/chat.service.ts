@@ -1,18 +1,19 @@
-import { ChatEntity, ChatMemberEntity, ChatMemberRole } from '../database/interfaces/database.interface';
-import { MemoryChatMemberRepository } from '../database/repositories/chat-member.repository';
-import { MemoryChatRepository } from '../database/repositories/chat.repository';
+import { ChatEntity, ChatMemberEntity, ChatMemberRole } from '../domain/entities';
+import { MemoryChatMemberRepository } from '../data/repositories/MemoryChatMemberRepository';
+import { MemoryChatRepository } from '../data/repositories/MemoryChatRepository';
 import { ChatConnectionArgs } from '../graphql/inputs/ChatConnectionArgs';
 import { Chat, ChatMember } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
 import { PaginationUtil } from '../utils/pagination.util';
+import { IChatMemberRepository, IChatRepository } from '../domain';
 
 export class ChatService {
-  private chatRepository: MemoryChatRepository;
-  private chatMemberRepository: MemoryChatMemberRepository;
+  private chatRepository: IChatRepository;
+  private chatMemberRepository: IChatMemberRepository;
 
   constructor(
-    chatRepository: MemoryChatRepository,
-    chatMemberRepository: MemoryChatMemberRepository
+    chatRepository: IChatRepository,
+    chatMemberRepository: IChatMemberRepository
   ) {
     this.chatRepository = chatRepository;
     this.chatMemberRepository = chatMemberRepository;

@@ -1,7 +1,4 @@
 import { DatabaseManager } from '../database/database.manager';
-import { MemoryChatMemberRepository } from '../database/repositories/chat-member.repository';
-import { MemoryChatRepository } from '../database/repositories/chat.repository';
-import { MemoryMessageRepository } from '../database/repositories/message.repository';
 import { LoggerUtil } from '../utils/logger.util';
 import { ChatService } from './chat.service';
 import { MessageService } from './message.service';
@@ -9,12 +6,15 @@ import { UserService } from './user.service';
 
 export class ServiceManager {
   private static instance: ServiceManager;
-  private userService: UserService | null = null;
-  private chatService: ChatService | null = null;
-  private messageService: MessageService | null = null;
+  private databaseManager: DatabaseManager;
+  private userService?: UserService;
+  private chatService?: ChatService;
+  private messageService?: MessageService;
   private isInitialized = false;
 
-  private constructor() {}
+  private constructor() {
+    this.databaseManager = DatabaseManager.getInstance();
+  }
 
   static getInstance(): ServiceManager {
     if (!ServiceManager.instance) {
@@ -31,19 +31,6 @@ export class ServiceManager {
 
     try {
       LoggerUtil.info('Initializing service manager...');
-      
-      const databaseManager = DatabaseManager.getInstance();
-      
-      // Initialize repositories
-      const chatRepository = new MemoryChatRepository(databaseManager);
-      const chatMemberRepository = new MemoryChatMemberRepository(databaseManager);
-      const messageRepository = new MemoryMessageRepository(databaseManager);
-      
-      // Initialize services with their respective repositories
-      this.userService = new UserService(databaseManager.getUserRepository());
-      this.chatService = new ChatService(chatRepository, chatMemberRepository);
-      this.messageService = new MessageService(messageRepository, chatRepository);
-      
       this.isInitialized = true;
       LoggerUtil.info('Service manager initialized successfully');
     } catch (error) {
@@ -54,17 +41,37 @@ export class ServiceManager {
 
   getUserService(): UserService {
     this.ensureInitialized();
-    return this.userService!;
+    if (!this.userService) {
+      LoggerUtil.debug('Creating UserService instance');
+      this.userService = new UserService(this.databaseManager);
+    }
+    return this.userService;
   }
 
   getChatService(): ChatService {
     this.ensureInitialized();
-    return this.chatService!;
+    if (!this.chatService) {
+      LoggerUtil.debug('Creating ChatService instance');
+      
+      const chatRepository = this.databaseManager.getRepositories().chatRepository;
+      const chatMemberRepository = this.databaseManager.getRepositories().chatMemberRepository;
+      
+      this.chatService = new ChatService(chatRepository, chatMemberRepository);
+    }
+    return this.chatService;
   }
 
   getMessageService(): MessageService {
     this.ensureInitialized();
-    return this.messageService!;
+    if (!this.messageService) {
+      LoggerUtil.debug('Creating MessageService instance');
+      
+      const messageRepository = this.databaseManager.getRepositories().messageRepository;
+      const chatRepository = this.databaseManager.getRepositories().chatRepository;
+      
+      this.messageService = new MessageService(messageRepository, chatRepository);
+    }
+    return this.messageService;
   }
 
   private ensureInitialized(): void {

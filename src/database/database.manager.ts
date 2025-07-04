@@ -1,6 +1,8 @@
+import { DataEntity } from '../domain/entities/data-entity';
+import { Repository } from '../domain/repositories';
 import { LoggerUtil } from '../utils/logger.util';
 import { DatabaseFactory, DatabaseRepositories, DatabaseType } from './database.factory';
-import { DatabaseConnection, UserRepository } from './interfaces/database.interface';
+import { DatabaseConnection } from './interfaces/database.interface';
 import { DatabaseSeeder } from './seed';
 
 export class DatabaseManager {
@@ -33,7 +35,7 @@ export class DatabaseManager {
       await connection.connect();
       this.connection = connection;
       this.repositories = repositories;
-      this.seeder = new DatabaseSeeder(this);
+      this.seeder = new DatabaseSeeder(this, repositories);
       this.isInitialized = true;
 
       LoggerUtil.info('Database manager initialized successfully');
@@ -42,6 +44,8 @@ export class DatabaseManager {
       throw error;
     }
   }
+
+  
 
   async shutdown(): Promise<void> {
     try {
@@ -66,9 +70,9 @@ export class DatabaseManager {
     return this.connection!;
   }
 
-  getUserRepository(): UserRepository {
+  getRepositories(): DatabaseRepositories {
     this.ensureInitialized();
-    return this.repositories!.userRepository;
+    return this.repositories!;
   }
 
   async getHealthStatus(): Promise<{
@@ -108,7 +112,7 @@ export class DatabaseManager {
       LoggerUtil.info('Starting database seed...');
       
       if (this.seeder) {
-        await this.seeder.seedDatabase();
+        await this.seeder.seed();
       } else {
         LoggerUtil.warn('Database seeder not available');
       }

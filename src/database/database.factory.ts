@@ -1,12 +1,22 @@
+import { MemoryChatMemberRepository } from '../data/repositories/MemoryChatMemberRepository';
+import { MemoryChatRepository } from '../data/repositories/MemoryChatRepository';
+import { MemoryMessageRepository } from '../data/repositories/MemoryMessageRepository';
+import { MemoryUserRepository } from '../data/repositories/MemoryUserRepository';
+import { IChatMemberRepository } from '../domain/repositories/IChatMemberRepository';
+import { IChatRepository } from '../domain/repositories/IChatRepository';
+import { IMessageRepository } from '../domain/repositories/IMessageRepository';
+import { IUserRepository } from '../domain/repositories/IUserRepository';
 import { LoggerUtil } from '../utils/logger.util';
-import { DatabaseConnection, UserRepository } from './interfaces/database.interface';
+import { DatabaseConnection } from './interfaces/database.interface';
 import { MemoryDatabase } from './memory_database/memory.database';
-import { MemoryUserRepository } from './repositories/user.repository';
 
 export type DatabaseType = 'memory' | 'postgresql' | 'mongodb' | 'mysql';
 
 export interface DatabaseRepositories {
-  userRepository: UserRepository;
+  userRepository: IUserRepository;
+  chatRepository: IChatRepository;
+  chatMemberRepository: IChatMemberRepository;
+  messageRepository: IMessageRepository;
 }
 
 export class DatabaseFactory {
@@ -46,11 +56,17 @@ export class DatabaseFactory {
     
     // Create repositories using the same database instance
     const userRepository = new MemoryUserRepository(database);
+    const chatRepository = new MemoryChatRepository(database);
+    const chatMemberRepository = new MemoryChatMemberRepository(database);
+    const messageRepository = new MemoryMessageRepository(database);
     
     return {
       connection: database,
       repositories: {
-        userRepository
+        userRepository,
+        chatRepository,
+        chatMemberRepository,
+        messageRepository,
       }
     };
   }
