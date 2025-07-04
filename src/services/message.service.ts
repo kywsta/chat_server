@@ -1,11 +1,9 @@
 import { MessageEntity, MessageType } from '../domain/entities';
-import { MemoryChatRepository } from '../data/repositories/MemoryChatRepository';
-import { MemoryMessageRepository } from '../data/repositories/MemoryMessageRepository';
+import { IChatRepository, IMessageRepository } from '../domain/repositories';
 import { MessageConnectionArgs } from '../graphql/inputs/MessageConnectionArgs';
 import { Message } from '../types';
 import { LoggerUtil } from '../utils/logger.util';
 import { PaginationUtil } from '../utils/pagination.util';
-import { IChatRepository, IMessageRepository } from '../domain/repositories';
 
 export class MessageService {
   private messageRepository: IMessageRepository;

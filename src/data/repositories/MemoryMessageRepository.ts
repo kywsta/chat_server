@@ -107,7 +107,7 @@ export class MemoryMessageRepository
 
     const messages = await this.findAll(options);
 
-    const totalCount = 0;
+    const totalCount = await this.getMessageCount(chatId);
 
     return { messages, totalCount };
   }
