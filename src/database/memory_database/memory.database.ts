@@ -2,6 +2,7 @@ import { DataEntity } from '../../domain/entities/data-entity';
 import { FindOptions, Repository } from '../../domain/repositories';
 import { LoggerUtil } from '../../utils/logger.util';
 import { DatabaseConnection, DatabaseHealth } from '../interfaces/database.interface';
+import { FilterUtil } from './filter.util';
 
 export class MemoryDatabase implements DatabaseConnection {
   private collections: Map<string, Map<number, any>> = new Map();
@@ -144,49 +145,9 @@ export class MemoryRepository<T extends DataEntity> implements Repository<T> {
 
     // Apply conditional filters
     if (options?.conditionalFilters) {
-      entities = entities.filter(entity => {
-        return options.conditionalFilters!.every(filter => {
-          const entityValue = (entity as any)[filter.key];
-          
-          switch (filter.operator) {
-            case 'eq':
-              return entityValue === filter.value;
-            case 'ne':
-              return entityValue !== filter.value;
-            case 'gt':
-              return entityValue > filter.value;
-            case 'gte':
-              return entityValue >= filter.value;
-            case 'lt':
-              return entityValue < filter.value;
-            case 'lte':
-              return entityValue <= filter.value;
-            case 'in':
-              return Array.isArray(filter.value) && filter.value.includes(entityValue);
-            case 'nin':
-              return Array.isArray(filter.value) && !filter.value.includes(entityValue);
-            case 'like':
-              return typeof entityValue === 'string' && entityValue.includes(filter.value);
-            case 'nlike':
-              return typeof entityValue === 'string' && !entityValue.includes(filter.value);
-            case 'contains':
-              if (Array.isArray(entityValue)) {
-                return entityValue.includes(filter.value);
-              }
-              return typeof entityValue === 'string' && entityValue.includes(filter.value);
-            case 'startsWith':
-              return typeof entityValue === 'string' && entityValue.startsWith(filter.value);
-            case 'endsWith':
-              return typeof entityValue === 'string' && entityValue.endsWith(filter.value);
-            case 'isNull':
-              return entityValue == null;
-            case 'isNotNull':
-              return entityValue != null;
-            default:
-              return true;
-          }
-        });
-      });
+      entities = entities.filter(entity =>
+        FilterUtil.applyAllConditionalFilters(entity, options.conditionalFilters!)
+      );
     }
 
     // Apply sorting
