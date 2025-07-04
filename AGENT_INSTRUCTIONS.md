@@ -211,25 +211,48 @@ Create test fixtures with:
 ```
 src/
 ├── config/
-├── controllers/          # Existing REST controllers
-├── database/
-│   ├── interfaces/      # Extend with chat/message interfaces
-│   ├── repositories/    # Add chat.repository.ts, message.repository.ts
+├── controllers/          # REST controllers
+├── database/             # Infrastructure: connection, factory, manager, memory db
+│   ├── interfaces/       # Database interfaces
+│   ├── memory_database/  # In-memory DB logic, filter utils
+│   │   ├── memory.database.ts
+│   │   ├── filter.util.ts
+│   │   └── query-builder.util.ts
 │   ├── database.factory.ts
 │   ├── database.manager.ts
-│   └── memory.database.ts  # Extend with chat/message storage
-├── graphql/             # New GraphQL layer
+│   └── seed.ts
+├── data/                 # Data layer: repository implementations
+│   └── repositories/
+│       ├── MemoryUserRepository.ts
+│       ├── MemoryChatRepository.ts
+│       ├── MemoryMessageRepository.ts
+│       └── MemoryChatMemberRepository.ts
+├── domain/               # Domain layer: entities and repository interfaces
+│   ├── entities/
+│   │   ├── User.ts
+│   │   ├── Chat.ts
+│   │   ├── Message.ts
+│   │   ├── ChatMember.ts
+│   │   └── data-entity.ts
+│   └── repositories/
+│       ├── IUserRepository.ts
+│       ├── IChatRepository.ts
+│       ├── IMessageRepository.ts
+│       ├── IChatMemberRepository.ts
+│       └── base/
+│           └── Repository.ts
+├── graphql/              # GraphQL layer
 │   ├── server.ts
 │   ├── context.ts
 │   ├── types/
 │   ├── inputs/
 │   ├── resolvers/
 │   └── middleware/
-├── middleware/          # Existing middleware (reuse auth)
-├── routes/             # Existing REST routes
-├── services/           # Extend with chat/message services
-├── utils/              # Existing utilities (reuse jwt.util.ts)
-└── __tests__/
+├── middleware/           # Middleware (auth, error handling, etc.)
+├── routes/               # REST routes
+├── services/             # Service layer (chat, message, etc.)
+├── utils/                # Utilities (logger, jwt, etc.)
+└── __tests__/            # Tests
 ```
 
 ## 🎯 Success Criteria
