@@ -62,6 +62,10 @@ export class PaginationUtil {
       items.pop(); // Remove the extra item used to check if there are more
     }
 
+    if (direction === 'backward') {
+      items.reverse();
+    }
+
     const edges = items.map(item => ({
       node: item,
       cursor: CursorUtil.createMessageCursor(item)
