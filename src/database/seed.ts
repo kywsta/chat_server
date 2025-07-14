@@ -423,12 +423,22 @@ export class DatabaseSeeder {
         createdAt: new Date(increaseTime(chat4StartTime).getTime()),
       },
 
+      // // Alice & Bob direct messages
+      // ...Array.from({ length: aliceBobMessages.length }, (_, i) => ({
+      //   id: `msg_${lastMessageId++}`,
+      //   chatId: "chat_3",
+      //   userId: i % 2 === 0 ? "1" : "2", // Alice: even, Bob: odd
+      //   content: aliceBobMessages[i],
+      //   type: MessageType.TEXT,
+      //   createdAt: new Date(increaseTime(chat3StartTime).getTime()),
+      // })),
+
       // Alice & Bob direct messages
-      ...Array.from({ length: aliceBobMessages.length }, (_, i) => ({
+      ...Array.from({ length: 53 }, (_, i) => ({
         id: `msg_${lastMessageId++}`,
         chatId: "chat_3",
         userId: i % 2 === 0 ? "1" : "2", // Alice: even, Bob: odd
-        content: aliceBobMessages[i],
+        content: "Chat message " + i,
         type: MessageType.TEXT,
         createdAt: new Date(increaseTime(chat3StartTime).getTime()),
       })),
