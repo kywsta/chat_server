@@ -13,15 +13,15 @@ export class MemoryDatabase implements DatabaseConnection {
   async connect(): Promise<void> {
     LoggerUtil.info('Connecting to memory database...');
     this.isConnectedFlag = true;
-    LoggerUtil.info('Memory database connected successfully');
+      LoggerUtil.info('Memory database connected successfully');
   }
 
   async disconnect(): Promise<void> {
     LoggerUtil.info('Disconnecting from memory database...');
     this.isConnectedFlag = false;
-    this.collections.clear();
-    this.stringCollections.clear();
-    LoggerUtil.info('Memory database disconnected successfully');
+      this.collections.clear();
+      this.stringCollections.clear();
+      LoggerUtil.info('Memory database disconnected successfully');
   }
 
   isConnected(): boolean {
@@ -43,7 +43,7 @@ export class MemoryDatabase implements DatabaseConnection {
     }
 
     const uptime = Date.now() - this.startTime.getTime();
-
+    
     return {
       isHealthy: this.isConnectedFlag,
       timestamp: new Date(),
@@ -81,7 +81,7 @@ export class MemoryDatabase implements DatabaseConnection {
     for (const [name, collection] of this.collections.entries()) {
       stats.collections[name] = collection.size;
       stats.totalRecords += collection.size;
-    }
+  }
 
     // Count records in string-keyed collections
     for (const [name, collection] of this.stringCollections.entries()) {
@@ -164,11 +164,11 @@ export class MemoryRepository<T extends DataEntity> implements Repository<T> {
 
     // Apply pagination
     if (options?.offset || options?.limit) {
-      const start = options.offset || 0;
+    const start = options.offset || 0;
       const end = options.limit ? start + options.limit : undefined;
       entities = entities.slice(start, end);
     }
-
+    
     return entities;
   }
 

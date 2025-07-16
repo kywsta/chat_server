@@ -13,4 +13,4 @@ export interface DatabaseHealth {
   isHealthy: boolean;
   timestamp: Date;
   details?: any;
-} 
+}

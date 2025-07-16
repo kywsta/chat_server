@@ -1,16 +1,16 @@
-import { Field, ObjectType } from 'type-graphql';
+import { Field, ObjectType } from "type-graphql";
 
 @ObjectType()
 export class TypingIndicator {
   @Field()
-  chatId: string = '';
+  chatId: string = "";
 
   @Field()
-  userId: string = '';
+  userId: string = "";
 
   @Field()
-  username: string = '';
+  userName: string = "";
 
   @Field()
   isTyping: boolean = false;
-} 
+}

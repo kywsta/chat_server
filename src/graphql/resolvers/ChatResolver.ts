@@ -1,25 +1,25 @@
 import "reflect-metadata";
 import {
-    Arg,
-    Args,
-    Ctx,
-    Mutation,
-    Query,
-    Resolver,
-    Root,
-    Subscription,
-    UseMiddleware,
+  Arg,
+  Args,
+  Ctx,
+  Mutation,
+  Query,
+  Resolver,
+  Root,
+  Subscription,
+  UseMiddleware,
 } from "type-graphql";
 import {
-    ChatMemberRole as DatabaseChatMemberRole,
-    MessageType as DatabaseMessageType,
+  ChatMemberRole as DatabaseChatMemberRole,
+  MessageType as DatabaseMessageType,
 } from "../../domain/entities";
 import { ServiceManager } from "../../services/service.manager";
 import {
-    GraphQLContext,
-    Chat as ServiceChat,
-    ChatMember as ServiceChatMember,
-    Message as ServiceMessage,
+  GraphQLContext,
+  Chat as ServiceChat,
+  ChatMember as ServiceChatMember,
+  Message as ServiceMessage,
 } from "../../types";
 import { LoggerUtil } from "../../utils/logger.util";
 import { AddMemberInput } from "../inputs/AddMemberInput";
@@ -353,6 +353,7 @@ export class ChatResolver {
 
       const chatService = this.serviceManager.getChatService();
       const userId = context.user!.userId.toString();
+      const userName = context.user!.username;
 
       // Check if user is a member of the chat
       const isMember = await chatService.isUserMemberOfChat(chatId, userId);
@@ -366,6 +367,7 @@ export class ChatResolver {
           typingIndicator: {
             chatId,
             userId,
+            userName,
             isTyping,
           },
         });
@@ -431,6 +433,7 @@ export class ChatResolver {
       LoggerUtil.debug("GraphQL typingIndicator subscription started", {
         chatId: args.chatId,
         userId: context.user.userId,
+        userName: context.user.username,
         topic,
       });
 
@@ -445,6 +448,7 @@ export class ChatResolver {
     LoggerUtil.debug("GraphQL typingIndicator subscription delivering status", {
       chatId,
       userId: typingPayload.typingIndicator.userId,
+      userName: typingPayload.typingIndicator.userName,
       isTyping: typingPayload.typingIndicator.isTyping,
     });
     return typingPayload.typingIndicator;
