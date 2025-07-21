@@ -11,7 +11,7 @@ export class MemoryChatMemberRepository
   implements IChatMemberRepository
 {
   constructor(database: MemoryDatabase) {
-    super(database, "chats");
+    super(database, "chatMembers");
   }
 
   override async create(
