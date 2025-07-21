@@ -149,8 +149,17 @@ export class DatabaseSeeder {
     LoggerUtil.info(`Seeded ${users.length} users`);
   }
 
+  private today = new Date();
+  private chat1StartTime = new Date(this.today.setDate(this.today.getDate() - 5));
+  private chat2StartTime = new Date(this.today.setDate(this.today.getDate() - 4));
+  private chat3StartTime = new Date(this.today.setDate(this.today.getDate() - 3));
+  private chat4StartTime = new Date(this.today.setDate(this.today.getDate() - 2));
+  private chat5StartTime = new Date(this.today.setDate(this.today.getDate() - 1));
+
   private async seedChats(database: MemoryDatabase): Promise<void> {
     LoggerUtil.info("Seeding chats...");
+
+    
 
     const chats = [
       {
@@ -160,8 +169,8 @@ export class DatabaseSeeder {
         memberIds: ["1", "2", "3", "4", "5"],
         isGroup: true,
         lastMessageId: "msg_5",
-        createdAt: new Date("2024-01-01T12:00:00Z"),
-        updatedAt: new Date("2024-01-01T15:30:00Z"),
+        createdAt: this.chat1StartTime,
+        updatedAt: this.chat1StartTime,
       },
       {
         id: "chat_2",
@@ -170,8 +179,8 @@ export class DatabaseSeeder {
         memberIds: ["2", "3", "4"],
         isGroup: true,
         lastMessageId: "msg_10",
-        createdAt: new Date("2024-01-01T13:00:00Z"),
-        updatedAt: new Date("2024-01-01T16:15:00Z"),
+        createdAt: this.chat2StartTime,
+        updatedAt: this.chat2StartTime,
       },
       {
         id: "chat_3",
@@ -180,8 +189,8 @@ export class DatabaseSeeder {
         memberIds: ["1", "2"],
         isGroup: false,
         lastMessageId: "msg_15",
-        createdAt: new Date("2024-01-01T14:00:00Z"),
-        updatedAt: new Date("2024-01-01T17:00:00Z"),
+        createdAt: this.chat3StartTime,
+        updatedAt: this.chat3StartTime,
       },
       {
         id: "chat_4",
@@ -190,8 +199,8 @@ export class DatabaseSeeder {
         memberIds: ["3", "4", "5"],
         isGroup: true,
         lastMessageId: "msg_20",
-        createdAt: new Date("2024-01-01T15:00:00Z"),
-        updatedAt: new Date("2024-01-01T18:00:00Z"),
+        createdAt: this.chat4StartTime,
+        updatedAt: this.chat4StartTime,
       },
       {
         id: "chat_5",
@@ -200,8 +209,8 @@ export class DatabaseSeeder {
         memberIds: ["3", "4"],
         isGroup: false,
         lastMessageId: "msg_25",
-        createdAt: new Date("2024-01-01T16:00:00Z"),
-        updatedAt: new Date("2024-01-01T19:00:00Z"),
+        createdAt: this.chat5StartTime,
+        updatedAt: this.chat5StartTime,
       },
     ];
 
@@ -276,12 +285,12 @@ export class DatabaseSeeder {
 
     let lastMessageId = 0;
 
-    const today = new Date();
-    const chat1StartTime = new Date(today.setDate(today.getDate() - 5));
-    const chat2StartTime = new Date(today.setDate(today.getDate() - 4));
-    const chat3StartTime = new Date(today.setDate(today.getDate() - 3));
-    const chat4StartTime = new Date(today.setDate(today.getDate() - 2));
-    const chat5StartTime = new Date(today.setDate(today.getDate() - 1));
+    // const today = new Date();
+    // const chat1StartTime = new Date(today.setDate(today.getDate() - 5));
+    // const chat2StartTime = new Date(today.setDate(today.getDate() - 4));
+    // const chat3StartTime = new Date(today.setDate(today.getDate() - 3));
+    // const chat4StartTime = new Date(today.setDate(today.getDate() - 2));
+    // const chat5StartTime = new Date(today.setDate(today.getDate() - 1));
 
     // Deterministic random for reproducibility
     function seededRandom(seed: number) {
@@ -305,7 +314,7 @@ export class DatabaseSeeder {
         userId: "1",
         content: "Hello everyone! Welcome to our general discussion chat.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat1StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat1StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -313,7 +322,7 @@ export class DatabaseSeeder {
         userId: "2",
         content: "Hi Alice! Great to be here.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat1StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat1StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -321,7 +330,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Hello team! Looking forward to our collaboration.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat1StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat1StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -329,7 +338,7 @@ export class DatabaseSeeder {
         userId: "4",
         content: "Hi everyone! 👋",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat1StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat1StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -337,7 +346,7 @@ export class DatabaseSeeder {
         userId: "5",
         content: "Good morning all! Ready to get started on our projects.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat1StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat1StartTime).getTime()),
       },
 
       // Project Alpha chat messages
@@ -347,7 +356,7 @@ export class DatabaseSeeder {
         userId: "2",
         content: "Welcome to Project Alpha team!",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat2StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat2StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -355,7 +364,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Thanks Bob! What are our first steps?",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat2StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat2StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -363,7 +372,7 @@ export class DatabaseSeeder {
         userId: "4",
         content: "I can help with the design phase.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat2StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat2StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -371,7 +380,7 @@ export class DatabaseSeeder {
         userId: "2",
         content: "Perfect! Let me share the project requirements.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat2StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat2StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -379,7 +388,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Received the requirements. They look comprehensive!",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat2StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat2StartTime).getTime()),
       },
       // Team Leaders chat messages
       {
@@ -388,7 +397,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Team leaders meeting starts now.",
         type: MessageType.SYSTEM,
-        createdAt: new Date(increaseTime(chat4StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat4StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -396,7 +405,7 @@ export class DatabaseSeeder {
         userId: "4",
         content: "Present! Ready to discuss quarterly goals.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat4StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat4StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -404,7 +413,7 @@ export class DatabaseSeeder {
         userId: "5",
         content: "Here as well. I have some updates on the client feedback.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat4StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat4StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -412,7 +421,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Great! Let's start with Diana's updates.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat4StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat4StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -420,7 +429,7 @@ export class DatabaseSeeder {
         userId: "4",
         content: "The client is very satisfied with our progress so far.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat4StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat4StartTime).getTime()),
       },
 
       // // Alice & Bob direct messages
@@ -440,7 +449,7 @@ export class DatabaseSeeder {
         userId: i % 2 === 0 ? "1" : "2", // Alice: even, Bob: odd
         content: "Chat message " + i,
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat3StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat3StartTime).getTime()),
       })),
 
       // Charlie & Diana direct messages
@@ -450,7 +459,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Hi Diana, how's the design review going?",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat5StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat5StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -459,7 +468,7 @@ export class DatabaseSeeder {
         content:
           "Going well! I should have the final version ready by tomorrow.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat5StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat5StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -467,7 +476,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Perfect! The developers are waiting for it.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat5StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat5StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -475,7 +484,7 @@ export class DatabaseSeeder {
         userId: "4",
         content: "I'll send it directly to them once it's ready.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat5StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat5StartTime).getTime()),
       },
       {
         id: `msg_${lastMessageId++}`,
@@ -483,7 +492,7 @@ export class DatabaseSeeder {
         userId: "3",
         content: "Thanks Diana! You're the best.",
         type: MessageType.TEXT,
-        createdAt: new Date(increaseTime(chat5StartTime).getTime()),
+        createdAt: new Date(increaseTime(this.chat5StartTime).getTime()),
       },
     ];
 
