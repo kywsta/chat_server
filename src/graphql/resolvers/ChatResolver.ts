@@ -75,7 +75,7 @@ export class ChatResolver {
         found: !!chat,
       });
 
-      return chat ? this.mapServiceChatToGraphQL(chat) : null;
+      return chat ? await this.mapServiceChatToGraphQL(chat) : null;
     } catch (error) {
       LoggerUtil.error("GraphQL getChat failed", error);
       throw error;
@@ -181,9 +181,10 @@ export class ChatResolver {
         count: members.length,
       });
 
-      return members.map((member) =>
-        this.mapServiceChatMemberToGraphQL(member)
+      const mappedMembers = await Promise.all(
+        members.map((member) => this.mapServiceChatMemberToGraphQL(member))
       );
+      return mappedMembers;
     } catch (error) {
       LoggerUtil.error("GraphQL getChatMembers failed", error);
       throw error;
@@ -328,7 +329,7 @@ export class ChatResolver {
         role: member.role,
       });
 
-      return this.mapServiceChatMemberToGraphQL(member);
+      return await this.mapServiceChatMemberToGraphQL(member);
     } catch (error) {
       LoggerUtil.error("GraphQL addChatMember failed", error);
       throw error;
@@ -454,7 +455,9 @@ export class ChatResolver {
 
   // PRIVATE MAPPING METHODS
 
-  private mapServiceChatToGraphQL(serviceChat: ChatEntity): Chat {
+  private async mapServiceChatToGraphQL(
+    serviceChat: ChatEntity
+  ): Promise<Chat> {
     const chat = new Chat();
     chat.id = serviceChat.id;
     chat.name = serviceChat.name;
@@ -466,6 +469,19 @@ export class ChatResolver {
 
     if (serviceChat.lastMessageId) {
       chat.lastMessageId = serviceChat.lastMessageId;
+    }
+
+    // Populate members array
+    try {
+      const chatService = this.serviceManager.getChatService();
+      const members = await chatService.getChatMembers(serviceChat.id);
+      const mappedMembers = await Promise.all(
+        members.map((member) => this.mapServiceChatMemberToGraphQL(member))
+      );
+      chat.members = mappedMembers;
+    } catch (error) {
+      LoggerUtil.error("Failed to populate chat members", error);
+      chat.members = [];
     }
 
     return chat;
@@ -491,9 +507,9 @@ export class ChatResolver {
     return message;
   }
 
-  private mapServiceChatMemberToGraphQL(
+  private async mapServiceChatMemberToGraphQL(
     serviceMember: ChatMemberEntity
-  ): ChatMember {
+  ): Promise<ChatMember> {
     const member = new ChatMember();
     member.id = serviceMember.id;
     member.chatId = serviceMember.chatId;
@@ -501,6 +517,16 @@ export class ChatResolver {
     member.role = this.mapChatMemberRoleToGraphQL(serviceMember.role);
     member.joinedAt = serviceMember.joinedAt;
     member.isActive = serviceMember.isActive;
+
+    // Fetch username from user service
+    try {
+      const userService = this.serviceManager.getUserService();
+      const user = await userService.getUserById(serviceMember.userId);
+      member.username = user?.username || "Unknown User";
+    } catch (error) {
+      LoggerUtil.error("Failed to fetch username for chat member", error);
+      member.username = "Unknown User";
+    }
 
     return member;
   }

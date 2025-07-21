@@ -22,6 +22,9 @@ export class ChatMember {
   @Field()
   userId!: string;
 
+  @Field()
+  username!: string;
+
   @Field(() => ChatMemberRole)
   role!: ChatMemberRole;
 
