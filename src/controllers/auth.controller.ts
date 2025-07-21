@@ -1,11 +1,7 @@
 import { Request, Response } from "express";
+import { AuthResponse, LoginRequest, RegisterRequest } from "../dtos";
 import { ServiceManager } from "../services/service.manager";
-import {
-  AuthenticatedRequest,
-  AuthResponse,
-  LoginRequest,
-  RegisterRequest,
-} from "../types";
+import { AuthenticatedRequest } from "../types";
 import { JWTUtil } from "../utils/jwt.util";
 import { LoggerUtil } from "../utils/logger.util";
 

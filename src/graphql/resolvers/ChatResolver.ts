@@ -11,16 +11,14 @@ import {
   UseMiddleware,
 } from "type-graphql";
 import {
+  ChatEntity,
+  ChatMemberEntity,
   ChatMemberRole as DatabaseChatMemberRole,
   MessageType as DatabaseMessageType,
+  MessageEntity,
 } from "../../domain/entities";
 import { ServiceManager } from "../../services/service.manager";
-import {
-  GraphQLContext,
-  Chat as ServiceChat,
-  ChatMember as ServiceChatMember,
-  Message as ServiceMessage,
-} from "../../types";
+import { GraphQLContext } from "../../types";
 import { LoggerUtil } from "../../utils/logger.util";
 import { AddMemberInput } from "../inputs/AddMemberInput";
 import { ChatConnectionArgs } from "../inputs/ChatConnectionArgs";
@@ -456,7 +454,7 @@ export class ChatResolver {
 
   // PRIVATE MAPPING METHODS
 
-  private mapServiceChatToGraphQL(serviceChat: ServiceChat): Chat {
+  private mapServiceChatToGraphQL(serviceChat: ChatEntity): Chat {
     const chat = new Chat();
     chat.id = serviceChat.id;
     chat.name = serviceChat.name;
@@ -473,7 +471,7 @@ export class ChatResolver {
     return chat;
   }
 
-  private mapServiceMessageToGraphQL(serviceMessage: ServiceMessage): Message {
+  private mapServiceMessageToGraphQL(serviceMessage: MessageEntity): Message {
     const message = new Message();
     message.id = serviceMessage.id;
     message.chatId = serviceMessage.chatId;
@@ -494,7 +492,7 @@ export class ChatResolver {
   }
 
   private mapServiceChatMemberToGraphQL(
-    serviceMember: ServiceChatMember
+    serviceMember: ChatMemberEntity
   ): ChatMember {
     const member = new ChatMember();
     member.id = serviceMember.id;
