@@ -103,13 +103,26 @@ export class ChatResolver {
         args
       );
 
+      // Map chat entities to GraphQL Chat objects with populated members
+      const mappedEdges = await Promise.all(
+        connection.edges.map(async (edge) => ({
+          ...edge,
+          node: await this.mapServiceChatToGraphQL(edge.node),
+        }))
+      );
+
+      const mappedConnection = {
+        ...connection,
+        edges: mappedEdges,
+      };
+
       LoggerUtil.debug("GraphQL userChats pagination result", {
         userId: context.user?.userId,
-        edgeCount: connection.edges.length,
-        totalCount: connection.totalCount,
+        edgeCount: mappedConnection.edges.length,
+        totalCount: mappedConnection.totalCount,
       });
 
-      return connection;
+      return mappedConnection;
     } catch (error) {
       LoggerUtil.error("GraphQL userChats pagination failed", error);
       throw error;
@@ -221,7 +234,7 @@ export class ChatResolver {
         creatorId: chat.creatorId,
       });
 
-      return this.mapServiceChatToGraphQL(chat);
+      return await this.mapServiceChatToGraphQL(chat);
     } catch (error) {
       LoggerUtil.error("GraphQL createChat failed", error);
       throw error;
